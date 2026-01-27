@@ -5,6 +5,37 @@ from .models import Engine, GameState
 from .utils import find_modifier_cards
 
 
+def _collect_hero_roll_modifiers(
+    state: GameState,
+    engine: Engine,
+    hero_id: Optional[int],
+) -> Tuple[int, List[Tuple[int, int]]]:
+    if hero_id is None:
+        return 0, []
+
+    for player in state.players:
+        items = player.hero_items.get(hero_id, [])
+        if not items:
+            continue
+
+        total = 0
+        details: List[Tuple[int, int]] = []
+        for item_id in items:
+            for step in engine.effects_by_card.get(item_id, []):
+                if (step.effect_kind or "").strip().lower() != "modify_hero_roll":
+                    continue
+                if "passive" not in step.triggers():
+                    continue
+                if step.amount is None:
+                    continue
+                total += step.amount
+                details.append((item_id, step.amount))
+        if details:
+            return total, details
+
+    return 0, []
+
+
 def resolve_roll_event(
     state: GameState,
     engine: Engine,
@@ -14,6 +45,7 @@ def resolve_roll_event(
     log: List[str],
     goal: Optional[Tuple[str, int]] = None,
     mode: str = "threshold",
+    hero_id: Optional[int] = None,
 ) -> int:
     """
     mode:
@@ -23,6 +55,17 @@ def resolve_roll_event(
     base = roll_2d6(rng)
     total = base
     log.append(f"[ROLL:{roll_reason}] P{roller_pid} base 2d6 = {base}")
+
+    hero_mod, hero_mod_details = _collect_hero_roll_modifiers(state, engine, hero_id)
+    if hero_mod:
+        total += hero_mod
+        parts = ", ".join(
+            f"{item_id}:{engine.card_meta.get(item_id, {}).get('name', '?')} {delta:+d}"
+            for item_id, delta in hero_mod_details
+        )
+        log.append(
+            f"[ROLL:{roll_reason}] hero {hero_id} modifiers {hero_mod:+d} from {parts} -> total={total}"
+        )
 
     used_by_player = set()
     ordered = [pid for pid in range(len(state.players)) if pid != roller_pid] + [roller_pid]
