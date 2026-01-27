@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+venv/
+
+# OS junk
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Logs / temp
+*.log
+
+# Pandas / Excel temp
+~$*.csv
+
+# Optional: generated outputs
+output/
+
