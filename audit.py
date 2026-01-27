@@ -1,37 +1,12 @@
 #!/usr/bin/env python3
-import re
 import sys
 from typing import Set, List, Tuple
 import pandas as pd
 
+from simulate import SUPPORTED_EFFECT_KINDS, is_condition_supported, parse_roll_condition
+
 EFFECTS_CSV = "cards - effects.csv"
 MONSTERS_CSV = "cards - monsters.csv"
-
-# Update this list to match what you currently implement in resolve_effect()
-IMPLEMENTED_EFFECT_KINDS = {
-    "draw_card", "draw_cards",
-    "discard_card", "discard_cards",
-    "move_card",
-    "steal_card",
-    "play_immediately",          # (your MVP stolen-card version)
-    "play_drawn_immediately",    # (Malamammoth)
-    "search_and_draw",
-    "deny_challenge",
-
-    # If you've added these in simulate.py, include them here:
-    "destroy_hero",
-    "sacrifice_hero",
-}
-
-# Current eval_condition supports:
-# - blank / NaN
-# - literal true/false
-# - ctx boolean flags (can't know ahead of time)
-# - "<var>.type==<type>"
-TYPE_CMP_RE = re.compile(r"^([a-zA-Z_]\w*)\.type\s*==\s*([a-zA-Z_]\w*)$")
-
-# parse_simple_condition supports: >=7, <=4, ==9, >8, <3 optionally with "2d6" prefix
-ROLL_RE = re.compile(r"^\s*(?:2d6\s*)?(>=|<=|==|>|<)\s*(\d+)\s*$")
 
 
 def _read_csv(path: str) -> pd.DataFrame:
@@ -59,21 +34,14 @@ def condition_likely_unparseable(cond: str) -> bool:
     cond = cond.strip()
     if cond == "" or cond.lower() == "nan":
         return False
-    if cond.lower() in ("true", "false"):
-        return False
-    if TYPE_CMP_RE.match(cond):
-        return False
-    # If it contains spaces/operators or multiple dots, likely unsupported
-    # Examples: "challenge.target.card.type==item" or "a && b" or "x==y"
-    # (Your evaluator only supports ".type==")
-    return True
+    return not is_condition_supported(cond)
 
 
 def roll_likely_unparseable(cond: str) -> bool:
     cond = cond.strip()
     if cond == "" or cond.lower() == "nan":
         return False
-    return ROLL_RE.match(cond) is None
+    return parse_roll_condition(cond) is None
 
 
 def main() -> int:
@@ -92,7 +60,7 @@ def main() -> int:
     )
 
     all_effect_kinds = sorted(effect_kinds_effects | effect_kinds_monsters)
-    unimplemented = sorted(set(all_effect_kinds) - set(IMPLEMENTED_EFFECT_KINDS))
+    unimplemented = sorted(set(all_effect_kinds) - set(SUPPORTED_EFFECT_KINDS))
 
     # ---------- CONDITION COVERAGE ----------
     bad_conditions: List[Tuple[str, str, str]] = []
@@ -141,7 +109,7 @@ def main() -> int:
 
     print(f"[1] Effect kinds found (total {len(all_effect_kinds)}):")
     for k in all_effect_kinds:
-        tag = "OK" if k in IMPLEMENTED_EFFECT_KINDS else "MISSING"
+        tag = "OK" if k in SUPPORTED_EFFECT_KINDS else "MISSING"
         print(f"  - {k:<28} {tag}")
     print()
 
