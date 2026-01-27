@@ -37,6 +37,7 @@ class PlayerState:
     captured_monsters: List[int] = field(default_factory=list)
     party_leader: Optional[int] = None
     hero_items: Dict[int, List[int]] = field(default_factory=lambda: defaultdict(list))
+    hero_class_overrides: Dict[int, List[Tuple[int, str]]] = field(default_factory=lambda: defaultdict(list))
     actions_per_turn: int = 3
     action_points: int = 3
 
