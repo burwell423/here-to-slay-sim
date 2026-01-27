@@ -1,22 +1,20 @@
 #!/usr/bin/env python3
+import json
 import sys
 from typing import List, Set, Tuple
 
-import pandas as pd
-
 from hts_sim.conditions import is_condition_supported, parse_roll_condition
-from hts_sim.constants import EFFECTS_CSV, MONSTERS_CSV
+from hts_sim.constants import EFFECTS_JSON, MONSTERS_JSON
 from hts_sim.effects import SUPPORTED_EFFECT_KINDS
 
 
-def _read_csv(path: str) -> pd.DataFrame:
-    df = pd.read_csv(path)
-    df = df.loc[:, ~df.columns.str.contains(r"^Unnamed")]
-    return df
+def _read_json(path: str):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def _norm(x) -> str:
-    if pd.isna(x):
+    if x is None:
         return ""
     return str(x).strip()
 
@@ -45,18 +43,16 @@ def roll_likely_unparseable(cond: str) -> bool:
 
 
 def main() -> int:
-    eff = _read_csv(EFFECTS_CSV)
-    mon = _read_csv(MONSTERS_CSV)
+    eff = _read_json(EFFECTS_JSON)
+    mon = _read_json(MONSTERS_JSON)
 
     # ---------- EFFECT KIND COVERAGE ----------
     effect_kinds_effects: Set[str] = set(
-        k for k in (_norm(x).lower() for x in eff.get("effect_kind", [])) if k
+        k for k in (_norm(x.get("effect_kind")).lower() for x in eff) if k
     )
 
-    # monsters: only rows that are not "on_attacked" (those are rules)
-    mon_non_attack = mon[mon["trigger"].fillna("").astype(str).str.strip().ne("on_attacked")]
     effect_kinds_monsters: Set[str] = set(
-        k for k in (_norm(x).lower() for x in mon_non_attack.get("effect_kind", [])) if k
+        k for k in (_norm(x.get("effect_kind")).lower() for x in mon.get("effects", [])) if k
     )
 
     all_effect_kinds = sorted(effect_kinds_effects | effect_kinds_monsters)
@@ -67,36 +63,29 @@ def main() -> int:
     # tuple: (source, name, condition)
 
     # effects.csv conditions
-    if "condition" in eff.columns:
-        for _, r in eff.iterrows():
-            cond = _norm(r.get("condition"))
-            if not _is_blank(cond) and condition_likely_unparseable(cond):
-                bad_conditions.append(("effects", _norm(r.get("name")), cond))
+    for r in eff:
+        cond = _norm(r.get("condition"))
+        if not _is_blank(cond) and condition_likely_unparseable(cond):
+            bad_conditions.append(("effects", _norm(r.get("name")), cond))
 
-    # monsters.csv conditions
-    if "condition" in mon.columns:
-        for _, r in mon.iterrows():
-            cond = _norm(r.get("condition"))
-            if not _is_blank(cond) and condition_likely_unparseable(cond):
-                bad_conditions.append(("monsters", _norm(r.get("name")), cond))
+    for r in mon.get("effects", []):
+        cond = _norm(r.get("condition"))
+        if not _is_blank(cond) and condition_likely_unparseable(cond):
+            bad_conditions.append(("monsters", _norm(r.get("name")), cond))
 
     # ---------- ROLL CONDITIONS ----------
     bad_rolls: List[Tuple[str, str, str, str]] = []
     # tuple: (source, name, field, roll_condition)
 
     # effects.csv roll_condition where requires_roll true
-    if "requires_roll" in eff.columns and "roll_condition" in eff.columns:
-        for _, r in eff.iterrows():
-            req = r.get("requires_roll")
-            req_bool = bool(req) if not pd.isna(req) else False
-            if req_bool:
-                rc = _norm(r.get("roll_condition"))
-                if roll_likely_unparseable(rc):
-                    bad_rolls.append(("effects", _norm(r.get("name")), "roll_condition", rc))
+    for r in eff:
+        req_bool = str(r.get("requires_roll") or "").strip().lower() in ("true", "1", "yes")
+        if req_bool:
+            rc = _norm(r.get("roll_condition"))
+            if roll_likely_unparseable(rc):
+                bad_rolls.append(("effects", _norm(r.get("name")), "roll_condition", rc))
 
-    # monsters.csv: on_attacked success/fail conditions
-    attack_rows = mon[mon["trigger"].fillna("").astype(str).str.strip().eq("on_attacked")]
-    for _, r in attack_rows.iterrows():
+    for r in mon.get("attack_rules", []):
         sc = _norm(r.get("success_condition"))
         fc = _norm(r.get("fail_condition"))
         if not _is_blank(sc) and roll_likely_unparseable(sc):

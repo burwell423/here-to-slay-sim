@@ -1,19 +1,20 @@
+import json
 import re
 from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
-from .constants import CARDS_CSV, EFFECTS_CSV, MONSTERS_CSV
+from .constants import CARDS_CSV, EFFECTS_JSON, MONSTERS_JSON
 from .models import EffectStep, Engine, MonsterRule
 
 
 def load_effects() -> Dict[int, List[EffectStep]]:
-    df = pd.read_csv(EFFECTS_CSV)
-    df = df.loc[:, ~df.columns.str.contains(r"^Unnamed")]
-
     steps_by_card: Dict[int, List[EffectStep]] = {}
-    for _, r in df.iterrows():
-        raw_amt = None if pd.isna(r.get("amount")) else str(r.get("amount")).strip()
+    with open(EFFECTS_JSON, encoding="utf-8") as f:
+        rows = json.load(f)
+
+    for r in rows:
+        raw_amt = str(r.get("amount") or "").strip() or None
         amount = None
         amount_expr = None
         if raw_amt and raw_amt.lower() != "nan":
@@ -28,15 +29,15 @@ def load_effects() -> Dict[int, List[EffectStep]]:
             step=int(r.get("step", 1)),
             trigger=str(r.get("trigger", "") or ""),
             effect_kind=str(r.get("effect_kind", "") or ""),
-            source_zone=None if pd.isna(r.get("source_zone")) else str(r.get("source_zone")),
-            dest_zone=None if pd.isna(r.get("dest_zone")) else str(r.get("dest_zone")),
-            filter_expr=None if pd.isna(r.get("filter")) else str(r.get("filter")),
+            source_zone=None if str(r.get("source_zone") or "").strip() in ("", "nan") else str(r.get("source_zone")),
+            dest_zone=None if str(r.get("dest_zone") or "").strip() in ("", "nan") else str(r.get("dest_zone")),
+            filter_expr=None if str(r.get("filter") or "").strip() in ("", "nan") else str(r.get("filter")),
             amount=amount,
             amount_expr=amount_expr,
-            requires_roll=bool(r.get("requires_roll")) if not pd.isna(r.get("requires_roll")) else False,
-            roll_condition=None if pd.isna(r.get("roll_condition")) else str(r.get("roll_condition")),
-            condition=None if pd.isna(r.get("condition")) else str(r.get("condition")),
-            notes=None if pd.isna(r.get("notes")) else str(r.get("notes")),
+            requires_roll=str(r.get("requires_roll") or "").strip().lower() in ("true", "1", "yes"),
+            roll_condition=None if str(r.get("roll_condition") or "").strip() in ("", "nan") else str(r.get("roll_condition")),
+            condition=None if str(r.get("condition") or "").strip() in ("", "nan") else str(r.get("condition")),
+            notes=None if str(r.get("notes") or "").strip() in ("", "nan") else str(r.get("notes")),
         )
         steps_by_card.setdefault(step.card_id, []).append(step)
 
@@ -65,28 +66,26 @@ def load_card_meta() -> Dict[int, Dict[str, Any]]:
     return meta
 
 
-def load_monsters(monsters_csv: str = MONSTERS_CSV) -> Tuple[Dict[int, MonsterRule], Dict[int, List[EffectStep]]]:
-    df = pd.read_csv(monsters_csv)
-    df = df.loc[:, ~df.columns.str.contains(r"^Unnamed")]
-
+def load_monsters(monsters_json: str = MONSTERS_JSON) -> Tuple[Dict[int, MonsterRule], Dict[int, List[EffectStep]]]:
     attack_rule: Dict[int, MonsterRule] = {}
     effects: Dict[int, List[EffectStep]] = {}
 
-    for _, r in df.iterrows():
+    with open(monsters_json, encoding="utf-8") as f:
+        payload = json.load(f)
+
+    for r in payload.get("attack_rules", []):
+        mid = int(r["monster_id"])
+        attack_rule[mid] = MonsterRule(
+            monster_id=mid,
+            success_condition=None if str(r.get("success_condition") or "").strip() in ("", "nan") else str(r.get("success_condition")).strip(),
+            fail_condition=None if str(r.get("fail_condition") or "").strip() in ("", "nan") else str(r.get("fail_condition")).strip(),
+            success_action=None if str(r.get("success_action") or "").strip() in ("", "nan") else str(r.get("success_action")).strip(),
+            fail_action=None if str(r.get("fail_action") or "").strip() in ("", "nan") else str(r.get("fail_action")).strip(),
+        )
+
+    for r in payload.get("effects", []):
         mid = int(r["card_id"])
-        trigger = str(r.get("trigger", "") or "").strip()
-
-        if trigger == "on_attacked":
-            attack_rule[mid] = MonsterRule(
-                monster_id=mid,
-                success_condition=None if pd.isna(r.get("success_condition")) else str(r.get("success_condition")).strip(),
-                fail_condition=None if pd.isna(r.get("fail_condition")) else str(r.get("fail_condition")).strip(),
-                success_action=None if pd.isna(r.get("success_action")) else str(r.get("success_action")).strip(),
-                fail_action=None if pd.isna(r.get("fail_action")) else str(r.get("fail_action")).strip(),
-            )
-            continue
-
-        raw_amt = None if pd.isna(r.get("amount")) else str(r.get("amount")).strip()
+        raw_amt = str(r.get("amount") or "").strip() or None
         amount = None
         amount_expr = None
         if raw_amt and raw_amt.lower() != "nan":
@@ -101,15 +100,15 @@ def load_monsters(monsters_csv: str = MONSTERS_CSV) -> Tuple[Dict[int, MonsterRu
             step=int(r.get("step", 1)),
             trigger=str(r.get("trigger", "") or ""),
             effect_kind=str(r.get("effect_kind", "") or ""),
-            source_zone=None if pd.isna(r.get("source_zone")) else str(r.get("source_zone")),
-            dest_zone=None if pd.isna(r.get("dest_zone")) else str(r.get("dest_zone")),
-            filter_expr=None if pd.isna(r.get("filter")) else str(r.get("filter")),
+            source_zone=None if str(r.get("source_zone") or "").strip() in ("", "nan") else str(r.get("source_zone")),
+            dest_zone=None if str(r.get("dest_zone") or "").strip() in ("", "nan") else str(r.get("dest_zone")),
+            filter_expr=None if str(r.get("filter") or "").strip() in ("", "nan") else str(r.get("filter")),
             amount=amount,
             amount_expr=amount_expr,
-            requires_roll=bool(r.get("requires_roll")) if not pd.isna(r.get("requires_roll")) else False,
-            roll_condition=None if pd.isna(r.get("success_condition")) else str(r.get("success_condition")),
-            condition=None if pd.isna(r.get("condition")) else str(r.get("condition")),
-            notes=None if pd.isna(r.get("notes")) else str(r.get("notes")),
+            requires_roll=str(r.get("requires_roll") or "").strip().lower() in ("true", "1", "yes"),
+            roll_condition=None if str(r.get("roll_condition") or "").strip() in ("", "nan") else str(r.get("roll_condition")),
+            condition=None if str(r.get("condition") or "").strip() in ("", "nan") else str(r.get("condition")),
+            notes=None if str(r.get("notes") or "").strip() in ("", "nan") else str(r.get("notes")),
         )
         effects.setdefault(mid, []).append(step)
 
@@ -157,7 +156,7 @@ def build_modifier_options(card_meta: Dict[int, Dict[str, Any]], effects_by_card
 def build_engine() -> Engine:
     effects_by_card = load_effects()
     card_meta = load_card_meta()
-    monster_attack_rules, monster_effects = load_monsters(MONSTERS_CSV)
+    monster_attack_rules, monster_effects = load_monsters(MONSTERS_JSON)
     modifier_options_by_card_id = build_modifier_options(card_meta, effects_by_card)
     return Engine(
         effects_by_card=effects_by_card,
