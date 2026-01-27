@@ -11,6 +11,7 @@ from .game_helpers import (
 )
 from .models import EffectStep, Engine, GameState, Policy
 from .rolls import resolve_roll_event
+from .utils import format_card_list
 
 
 def _handle_draw(
@@ -362,6 +363,30 @@ def _handle_destroy_item(
     )
 
 
+def _handle_look_at_hand(
+    step: EffectStep,
+    state: GameState,
+    engine: Engine,
+    pid: int,
+    ctx: Dict[str, Any],
+    rng: "random.Random",
+    policy: Policy,
+    log: List[str],
+):
+    target_pid = ctx.get("target_pid")
+    if target_pid is None:
+        candidates = [p for p in state.players if p.pid != pid and p.hand]
+        if not candidates:
+            ctx.setdefault("_warnings", []).append("look_at_hand: no opponents with cards in hand")
+            return
+        target = max(candidates, key=lambda p: (len(p.hand), -p.pid))
+        target_pid = target.pid
+    hand = state.players[target_pid].hand
+    log.append(
+        f"[P{pid}] look_at_hand sees P{target_pid} hand: {format_card_list(hand, engine.card_meta)}"
+    )
+
+
 EFFECT_HANDLERS = {
     "draw_card": _handle_draw,
     "draw_cards": _handle_draw,
@@ -381,6 +406,7 @@ EFFECT_HANDLERS = {
     "protection_from_destroy": _handle_protection_from_destroy,
     "protection_from_challenge": _handle_protection_from_challenge,
     "destroy_item": _handle_destroy_item,
+    "look_at_hand": _handle_look_at_hand,
 }
 
 SUPPORTED_EFFECT_KINDS = set(EFFECT_HANDLERS.keys())
