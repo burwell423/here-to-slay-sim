@@ -2,6 +2,7 @@ import random
 from typing import List, Optional
 
 from .actions import choose_and_take_action
+from .effects import resolve_effect
 from .loaders import build_engine
 from .models import GameState, PlayerState, Policy
 from .setup import build_decks, log_turn_state, setup_game
@@ -33,7 +34,12 @@ def run_game(seed: int = 1, turns: int = 10, n_players: int = 4, policy: Optiona
         pid = t % len(state.players)
         state.active_pid = pid
         p = state.players[pid]
-        p.action_points = 3
+        p.actions_per_turn = 3
+        for mid in p.captured_monsters:
+            for step in engine.monster_effects.get(mid, []):
+                if "passive" in step.triggers():
+                    resolve_effect(step, state, engine, pid, {}, rng, policy, log)
+        p.action_points = p.actions_per_turn
 
         log_turn_state(state, engine, pid, log)
 

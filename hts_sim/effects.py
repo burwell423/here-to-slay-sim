@@ -387,6 +387,21 @@ def _handle_look_at_hand(
     )
 
 
+def _handle_modify_action_total(
+    step: EffectStep,
+    state: GameState,
+    engine: Engine,
+    pid: int,
+    ctx: Dict[str, Any],
+    rng: "random.Random",
+    policy: Policy,
+    log: List[str],
+):
+    delta = step.amount if step.amount is not None else 1
+    state.players[pid].actions_per_turn += delta
+    log.append(f"[P{pid}] modify_action_total {delta:+d} -> {state.players[pid].actions_per_turn}")
+
+
 EFFECT_HANDLERS = {
     "draw_card": _handle_draw,
     "draw_cards": _handle_draw,
@@ -407,6 +422,7 @@ EFFECT_HANDLERS = {
     "protection_from_challenge": _handle_protection_from_challenge,
     "destroy_item": _handle_destroy_item,
     "look_at_hand": _handle_look_at_hand,
+    "modify_action_total": _handle_modify_action_total,
 }
 
 SUPPORTED_EFFECT_KINDS = set(EFFECT_HANDLERS.keys())
