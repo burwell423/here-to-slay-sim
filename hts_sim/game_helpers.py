@@ -35,6 +35,7 @@ def destroy_hero_card(state: GameState, engine: Engine, victim_pid: int, hero_id
         log.append(
             f"[P{victim_pid}] hero {hero_id} dies -> discarded items: {format_card_list(items, engine.card_meta)}"
         )
+    p.hero_class_overrides.pop(hero_id, None)
 
     p.party.remove(hero_id)
     state.discard_pile.append(hero_id)

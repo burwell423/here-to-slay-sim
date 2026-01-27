@@ -70,6 +70,10 @@ def play_card_from_hand(
         "played_card_type": ctype,
         "attached_to_hero": attached_hero if ctype == "item" else None,
     }
+    if ctype == "item" and attached_hero is not None:
+        for step in engine.effects_by_card.get(card_id, []):
+            if "passive" in step.triggers() and step.effect_kind == "modify_hero_class":
+                resolve_effect(step, state, engine, pid, ctx, rng, policy, log)
     for step in engine.effects_by_card.get(card_id, []):
         trig = step.triggers()
         if "on_play" in trig or "auto" in trig or "on_activation" in trig:

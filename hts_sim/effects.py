@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .conditions import eval_condition, goal_satisfied, parse_simple_condition
 from .game_helpers import (
@@ -12,6 +12,22 @@ from .game_helpers import (
 from .models import EffectStep, Engine, GameState, Policy
 from .rolls import resolve_roll_event
 from .utils import format_card_list
+
+
+def _parse_hero_class_from_notes(notes: str) -> Optional[str]:
+    if not notes:
+        return None
+    m = re.search(r"hero\\.type\\s*==\\s*([a-zA-Z_][\\w-]*)", notes)
+    if not m:
+        return None
+    return m.group(1).strip().lower()
+
+
+def _find_hero_owner(state: GameState, hero_id: int) -> Optional[int]:
+    for p in state.players:
+        if hero_id in p.party:
+            return p.pid
+    return None
 
 
 def _handle_draw(
@@ -357,6 +373,11 @@ def _handle_destroy_item(
 
     items.remove(item_id)
     state.discard_pile.append(item_id)
+    overrides = p.hero_class_overrides.get(hero_id)
+    if overrides:
+        p.hero_class_overrides[hero_id] = [entry for entry in overrides if entry[0] != item_id]
+        if not p.hero_class_overrides[hero_id]:
+            p.hero_class_overrides.pop(hero_id, None)
     log.append(
         f"[P{pid}] destroy_item -> removed {item_id}:{engine.card_meta.get(item_id,{}).get('name','?')} "
         f"from P{victim_pid} hero {hero_id}"
@@ -402,6 +423,43 @@ def _handle_modify_action_total(
     log.append(f"[P{pid}] modify_action_total {delta:+d} -> {state.players[pid].actions_per_turn}")
 
 
+def _handle_modify_hero_class(
+    step: EffectStep,
+    state: GameState,
+    engine: Engine,
+    pid: int,
+    ctx: Dict[str, Any],
+    rng: "random.Random",
+    policy: Policy,
+    log: List[str],
+):
+    hero_id = ctx.get("attached_to_hero") or ctx.get("activated_hero_id")
+    if hero_id is None:
+        ctx.setdefault("_warnings", []).append("modify_hero_class: missing target hero")
+        return
+
+    hero_class = _parse_hero_class_from_notes(step.notes or "")
+    if not hero_class:
+        ctx.setdefault("_warnings", []).append("modify_hero_class: missing hero class")
+        return
+
+    owner_pid = _find_hero_owner(state, hero_id)
+    if owner_pid is None:
+        ctx.setdefault("_warnings", []).append("modify_hero_class: hero not found in any party")
+        return
+
+    owner = state.players[owner_pid]
+    overrides = owner.hero_class_overrides.get(hero_id, [])
+    overrides = [entry for entry in overrides if entry[0] != step.card_id]
+    overrides.append((step.card_id, hero_class))
+    owner.hero_class_overrides[hero_id] = overrides
+
+    log.append(
+        f"[P{pid}] modify_hero_class -> hero {hero_id}:{engine.card_meta.get(hero_id,{}).get('name','?')} "
+        f"set to {hero_class} ({step.name})"
+    )
+
+
 EFFECT_HANDLERS = {
     "draw_card": _handle_draw,
     "draw_cards": _handle_draw,
@@ -423,6 +481,7 @@ EFFECT_HANDLERS = {
     "destroy_item": _handle_destroy_item,
     "look_at_hand": _handle_look_at_hand,
     "modify_action_total": _handle_modify_action_total,
+    "modify_hero_class": _handle_modify_hero_class,
 }
 
 SUPPORTED_EFFECT_KINDS = set(EFFECT_HANDLERS.keys())
