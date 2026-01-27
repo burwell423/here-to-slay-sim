@@ -423,6 +423,62 @@ def _handle_modify_action_total(
     log.append(f"[P{pid}] modify_action_total {delta:+d} -> {state.players[pid].actions_per_turn}")
 
 
+def _extract_modifier_deltas(step: EffectStep) -> List[int]:
+    candidates: List[str] = []
+    if step.amount is not None:
+        candidates.append(str(step.amount))
+    if step.amount_expr:
+        candidates.append(step.amount_expr)
+    if step.notes:
+        candidates.append(step.notes)
+    if step.filter_expr:
+        candidates.append(step.filter_expr)
+
+    deltas: List[int] = []
+    seen = set()
+    for text in candidates:
+        if not text:
+            continue
+        for raw in re.findall(r"[-+]?\d+", str(text)):
+            try:
+                val = int(raw)
+            except ValueError:
+                continue
+            if val in seen:
+                continue
+            seen.add(val)
+            deltas.append(val)
+
+    return deltas
+
+
+def _handle_modify_roll(
+    step: EffectStep,
+    state: GameState,
+    engine: Engine,
+    pid: int,
+    ctx: Dict[str, Any],
+    rng: "random.Random",
+    policy: Policy,
+    log: List[str],
+):
+    deltas = _extract_modifier_deltas(step)
+    if not deltas:
+        ctx.setdefault("_warnings", []).append("modify_roll: missing delta")
+        return
+
+    expires_turn: Optional[int] = None
+    if step.duration and step.duration.strip().lower() == "end_of_turn":
+        expires_turn = state.turn
+
+    for delta in deltas:
+        state.players[pid].roll_modifiers.append((step.card_id, delta, expires_turn))
+        log.append(
+            f"[P{pid}] modify_roll adds {delta:+d} "
+            f"({engine.card_meta.get(step.card_id,{}).get('name','?')})"
+        )
+
+
 def _handle_modify_hero_class(
     step: EffectStep,
     state: GameState,
@@ -481,6 +537,7 @@ EFFECT_HANDLERS = {
     "destroy_item": _handle_destroy_item,
     "look_at_hand": _handle_look_at_hand,
     "modify_action_total": _handle_modify_action_total,
+    "modify_roll": _handle_modify_roll,
     "modify_hero_class": _handle_modify_hero_class,
 }
 
