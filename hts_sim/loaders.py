@@ -38,6 +38,7 @@ def load_effects() -> Dict[int, List[EffectStep]]:
             roll_condition=None if str(r.get("roll_condition") or "").strip() in ("", "nan") else str(r.get("roll_condition")),
             condition=None if str(r.get("condition") or "").strip() in ("", "nan") else str(r.get("condition")),
             notes=None if str(r.get("notes") or "").strip() in ("", "nan") else str(r.get("notes")),
+            duration=None if str(r.get("duration") or "").strip() in ("", "nan") else str(r.get("duration")),
         )
         steps_by_card.setdefault(step.card_id, []).append(step)
 
@@ -109,6 +110,7 @@ def load_monsters(monsters_json: str = MONSTERS_JSON) -> Tuple[Dict[int, Monster
             roll_condition=None if str(r.get("roll_condition") or "").strip() in ("", "nan") else str(r.get("roll_condition")),
             condition=None if str(r.get("condition") or "").strip() in ("", "nan") else str(r.get("condition")),
             notes=None if str(r.get("notes") or "").strip() in ("", "nan") else str(r.get("notes")),
+            duration=None if str(r.get("duration") or "").strip() in ("", "nan") else str(r.get("duration")),
         )
         effects.setdefault(mid, []).append(step)
 

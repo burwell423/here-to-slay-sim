@@ -24,6 +24,7 @@ class EffectStep:
     roll_condition: Optional[str]
     condition: Optional[str]
     notes: Optional[str]
+    duration: Optional[str]
 
     def triggers(self) -> List[str]:
         return [t.strip() for t in (self.trigger or "").split(";") if t.strip()]
@@ -40,6 +41,7 @@ class PlayerState:
     hero_class_overrides: Dict[int, List[Tuple[int, str]]] = field(default_factory=lambda: defaultdict(list))
     actions_per_turn: int = 3
     action_points: int = 3
+    roll_modifiers: List[Tuple[int, int, Optional[int]]] = field(default_factory=list)
 
 
 @dataclass

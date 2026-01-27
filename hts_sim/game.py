@@ -31,6 +31,13 @@ def run_game(seed: int = 1, turns: int = 10, n_players: int = 4, policy: Optiona
 
     for t in range(turns):
         state.turn = t + 1
+        for player in state.players:
+            if player.roll_modifiers:
+                player.roll_modifiers = [
+                    entry
+                    for entry in player.roll_modifiers
+                    if entry[2] is None or entry[2] >= state.turn
+                ]
         pid = t % len(state.players)
         state.active_pid = pid
         p = state.players[pid]
