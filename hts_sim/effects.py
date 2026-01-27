@@ -518,6 +518,7 @@ def resolve_effect(
             log=log,
             goal=(op, target),
             mode="threshold",
+            hero_id=ctx.get("activated_hero_id"),
         )
         ok = goal_satisfied(final, op, target)
         log.append(
