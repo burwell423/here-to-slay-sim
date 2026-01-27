@@ -85,6 +85,90 @@ class MonsterRule:
     success_action: Optional[str]
     fail_action: Optional[str]
 
+@dataclass
+class ChallengePolicy:
+    challenge_probability: float = 0.35
+
+@dataclass
+class Policy:
+    challenge: ChallengePolicy = field(default_factory=ChallengePolicy)
+
+    def score_card_value(self, card_id: int, engine: "Engine") -> int:
+        meta = engine.card_meta.get(card_id, {})
+        ctype = str(meta.get("type", "unknown")).lower()
+        cost = int(meta.get("action_cost", 1) or 1)
+        base = {
+            "hero": 60,
+            "item": 45,
+            "magic": 35,
+            "challenge": 25,
+            "modifier": 15,
+            "monster": 5,
+            "party_leader": 80,
+        }.get(ctype, 20)
+        return base + cost
+
+    def choose_discard_card(self, hand: List[int], engine: "Engine") -> Optional[int]:
+        if not hand:
+            return None
+        ranked = sorted(hand, key=lambda cid: (self.score_card_value(cid, engine), cid))
+        return ranked[0]
+
+    def choose_steal_card(self, opp_hand: List[int], engine: "Engine") -> Optional[int]:
+        if not opp_hand:
+            return None
+        ranked = sorted(opp_hand, key=lambda cid: (-self.score_card_value(cid, engine), cid))
+        return ranked[0]
+
+    def choose_move_card(self, source: List[int], dest_zone: str, engine: "Engine") -> Optional[int]:
+        if not source:
+            return None
+        if dest_zone in ("discard_pile",):
+            ranked = sorted(source, key=lambda cid: (self.score_card_value(cid, engine), cid))
+        else:
+            ranked = sorted(source, key=lambda cid: (-self.score_card_value(cid, engine), cid))
+        return ranked[0]
+
+    def choose_card_to_play(self, hand: List[int], engine: "Engine") -> Optional[int]:
+        candidates = [cid for cid in hand if str(engine.card_meta.get(cid, {}).get("type", "")).lower() != "modifier"]
+        if not candidates:
+            return None
+        ranked = sorted(candidates, key=lambda cid: (-self.score_card_value(cid, engine), cid))
+        return ranked[0]
+
+    def choose_item_attach_target(self, party: List[int], engine: "Engine", hero_items: Dict[int, List[int]]) -> Optional[int]:
+        if not party:
+            return None
+        ranked = sorted(
+            party,
+            key=lambda hid: (-len(hero_items.get(hid, [])), hid),
+        )
+        return ranked[0]
+
+    def choose_monster_to_attack(self, monster_row: List[int], engine: "Engine") -> Optional[int]:
+        if not monster_row:
+            return None
+        ranked = sorted(monster_row, key=lambda mid: (-self.score_card_value(mid, engine), mid))
+        return ranked[0]
+
+    def choose_challenger(self, state: "GameState", engine: "Engine", pid_playing: int) -> Optional[Tuple[int, int]]:
+        candidates: List[Tuple[int, int]] = []
+        n = len(state.players)
+        for offset in range(1, n):
+            opid = (pid_playing + offset) % n
+            ccid = find_challenge_card_in_hand(state.players[opid], engine.card_meta)
+            if ccid is not None:
+                candidates.append((opid, ccid))
+        if not candidates:
+            return None
+        ranked = sorted(
+            candidates,
+            key=lambda pair: (-len(state.players[pair[0]].hand), pair[0]),
+        )
+        return ranked[0]
+
+    def should_challenge(self, rng: random.Random) -> bool:
+        return rng.random() < self.challenge.challenge_probability
 
 @dataclass
 class Engine:
@@ -384,6 +468,7 @@ def _handle_draw(step: EffectStep,
                  pid: int,
                  ctx: Dict[str, Any],
                  rng: random.Random,
+                 policy: Policy,
                  log: List[str]):
     n = step.amount if step.amount is not None else 1
     for _ in range(n):
@@ -400,11 +485,16 @@ def _handle_discard(step: EffectStep,
                     pid: int,
                     ctx: Dict[str, Any],
                     rng: random.Random,
+                    policy: Policy,
                     log: List[str]):
     n = step.amount if step.amount is not None else 1
     hand = state.players[pid].hand
     for _ in range(min(n, len(hand))):
-        cid = hand.pop(0)  # MVP: discard first
+        chosen = policy.choose_discard_card(hand, engine)
+        if chosen is None:
+            return
+        hand.remove(chosen)
+        cid = chosen
         state.discard_pile.append(cid)
         log.append(f"[P{pid}] discarded card_id={cid}")
 
@@ -414,6 +504,7 @@ def _handle_move(step: EffectStep,
                  pid: int,
                  ctx: Dict[str, Any],
                  rng: random.Random,
+                 policy: Policy,
                  log: List[str]):
     if not step.source_zone or not step.dest_zone:
         ctx.setdefault("_warnings", []).append(f"MOVE_CARD_MISSING_ZONES: {step.name}")
@@ -422,7 +513,11 @@ def _handle_move(step: EffectStep,
     dst = get_zone(state, pid, step.dest_zone)
     if not src:
         return
-    cid = src.pop(0)
+    chosen = policy.choose_move_card(src, step.dest_zone.strip(), engine)
+    if chosen is None:
+        return
+    src.remove(chosen)
+    cid = chosen
     dst.append(cid)
     log.append(f"[P{pid}] move_card {cid} {step.source_zone} -> {step.dest_zone}")
 
@@ -432,12 +527,17 @@ def _handle_steal(step: EffectStep,
                   pid: int,
                   ctx: Dict[str, Any],
                   rng: random.Random,
+                  policy: Policy,
                   log: List[str]):
     opp = (pid + 1) % len(state.players)
     opp_hand = state.players[opp].hand
     if not opp_hand:
         return
-    cid = opp_hand.pop(0)
+    chosen = policy.choose_steal_card(opp_hand, engine)
+    if chosen is None:
+        return
+    opp_hand.remove(chosen)
+    cid = chosen
     state.players[pid].hand.append(cid)
     ctx["stolen_card"] = engine.card_meta.get(cid, {"id": cid, "type": "unknown"})
     log.append(f"[P{pid}] stole card_id={cid} from P{opp}")
@@ -448,6 +548,7 @@ def _handle_play_immediately(step: EffectStep,
                              pid: int,
                              ctx: Dict[str, Any],
                              rng: random.Random,
+                             policy: Policy,
                              log: List[str]):
     stolen = ctx.get("stolen_card")
     if not isinstance(stolen, dict):
@@ -464,6 +565,7 @@ def _handle_play_drawn_immediately(step: EffectStep,
                                    pid: int,
                                    ctx: Dict[str, Any],
                                    rng: random.Random,
+                                   policy: Policy,
                                    log: List[str]):
     drawn = ctx.get("drawn_card")
     if not isinstance(drawn, dict):
@@ -479,6 +581,7 @@ def _handle_play_drawn_immediately(step: EffectStep,
         pid=pid,
         card_id=cid,
         rng=rng,
+        policy=policy,
         log=log,
         cost_override=0,
         allow_challenge=True,
@@ -490,6 +593,7 @@ def _handle_deny_challenge(step: EffectStep,
                            pid: int,
                            ctx: Dict[str, Any],
                            rng: random.Random,
+                           policy: Policy,
                            log: List[str]):
     ctx["challenge.denied"] = True
     log.append(f"[P{pid}] deny_challenge triggered ({step.name})")
@@ -500,6 +604,7 @@ def _handle_search_and_draw(step: EffectStep,
                             pid: int,
                             ctx: Dict[str, Any],
                             rng: random.Random,
+                            policy: Policy,
                             log: List[str]):
     if not step.source_zone or not step.dest_zone:
         ctx.setdefault("_warnings", []).append(f"SEARCH_MISSING_ZONES: {step.name}")
@@ -531,6 +636,7 @@ def _handle_destroy_hero(step: EffectStep,
                          pid: int,
                          ctx: Dict[str, Any],
                          rng: random.Random,
+                         policy: Policy,
                          log: List[str]):
     victim_pid = ctx.get("target_pid")
     if victim_pid is None:
@@ -553,6 +659,7 @@ def _handle_sacrifice_hero(step: EffectStep,
                            pid: int,
                            ctx: Dict[str, Any],
                            rng: random.Random,
+                           policy: Policy,
                            log: List[str]):
     victim_pid = ctx.get("target_pid", pid)
     hid = victim_choose_hero_to_sacrifice(state, engine, victim_pid)
@@ -569,6 +676,7 @@ def _handle_do_nothing(step: EffectStep,
                        pid: int,
                        ctx: Dict[str, Any],
                        rng: random.Random,
+                       policy: Policy,
                        log: List[str]):
     return
 
@@ -578,6 +686,7 @@ def _handle_deny(step: EffectStep,
                  pid: int,
                  ctx: Dict[str, Any],
                  rng: random.Random,
+                 policy: Policy,
                  log: List[str]):
     if "challenge.denied" in ctx:
         ctx["challenge.denied"] = True
@@ -592,6 +701,7 @@ def _handle_protection_from_steal(step: EffectStep,
                                   pid: int,
                                   ctx: Dict[str, Any],
                                   rng: random.Random,
+                                  policy: Policy,
                                   log: List[str]):
     ctx["protect.steal"] = True
 
@@ -601,6 +711,7 @@ def _handle_protection_from_destroy(step: EffectStep,
                                     pid: int,
                                     ctx: Dict[str, Any],
                                     rng: random.Random,
+                                    policy: Policy,
                                     log: List[str]):
     ctx["protect.destroy"] = True
 
@@ -610,6 +721,7 @@ def _handle_protection_from_challenge(step: EffectStep,
                                       pid: int,
                                       ctx: Dict[str, Any],
                                       rng: random.Random,
+                                      policy: Policy,
                                       log: List[str]):
     ctx["protect.challenge"] = True
 
@@ -641,6 +753,7 @@ def resolve_effect(step: EffectStep,
                    pid: int,
                    ctx: Dict[str, Any],
                    rng: random.Random,
+                   policy: Policy,
                    log: List[str]):
     if not eval_condition(step.condition, ctx):
         return
@@ -675,7 +788,7 @@ def resolve_effect(step: EffectStep,
         ctx.setdefault("_warnings", []).append(f"UNIMPLEMENTED_EFFECT_KIND: {ek} ({step.name})")
         return
 
-    handler(step, state, engine, pid, ctx, rng, log)
+    handler(step, state, engine, pid, ctx, rng, policy, log)
 
 
 # -----------------------------
@@ -687,6 +800,7 @@ def maybe_challenge_play(state: GameState,
                          pid_playing: int,
                          played_card_id: int,
                          rng: random.Random,
+                         policy: Policy,
                          log: List[str]) -> bool:
     """
     Returns True if play is cancelled by a successful challenge.
@@ -706,29 +820,19 @@ def maybe_challenge_play(state: GameState,
         for mid in pstate.captured_monsters:
             for step in engine.monster_effects.get(mid, []):
                 if "on_challenge" in step.triggers():
-                    resolve_effect(step, state, engine, pstate.pid, ctx, rng, log)
+                    resolve_effect(step, state, engine, pstate.pid, ctx, rng, policy, log)
 
     if ctx.get("challenge.denied"):
         log.append("[Challenge] DENIED by effect")
         return False  # play continues, challenge cancelled
 
-    # Find first opponent with a challenge card
-    n = len(state.players)
-    challenger_pid = None
-    challenge_card_id = None
-    for offset in range(1, n):
-        opid = (pid_playing + offset) % n
-        ccid = find_challenge_card_in_hand(state.players[opid], engine.card_meta)
-        if ccid is not None:
-            challenger_pid = opid
-            challenge_card_id = ccid
-            break
-
-    if challenger_pid is None:
+    challenge_pick = policy.choose_challenger(state, engine, pid_playing)
+    if challenge_pick is None:
         return False
 
-    # MVP: probabilistic challenge to avoid constant cancels
-    if rng.random() > 0.35:
+    challenger_pid, challenge_card_id = challenge_pick
+
+    if not policy.should_challenge(rng):
         return False
 
     # Consume challenge card
@@ -776,6 +880,7 @@ def play_card_from_hand(state: GameState,
                         pid: int,
                         card_id: int,
                         rng: random.Random,
+                        policy: Policy,
                         log: List[str],
                         cost_override: Optional[int] = None,
                         allow_challenge: bool = True):
@@ -795,12 +900,14 @@ def play_card_from_hand(state: GameState,
 
     # Challenge window
     if allow_challenge:
-        cancelled = maybe_challenge_play(state, engine, pid, card_id, rng, log)
+        cancelled = maybe_challenge_play(state, engine, pid, card_id, rng, policy, log)
         if cancelled:
             state.discard_pile.append(card_id)
             log.append(f"[P{pid}] play of {card_id} cancelled -> discard")
             p.action_points -= cost
             return
+
+    attached_hero: Optional[int] = None
 
     # Route card by type
     if ctype == "hero":
@@ -812,12 +919,17 @@ def play_card_from_hand(state: GameState,
             state.discard_pile.append(card_id)
             log.append(f"[P{pid}] WARN played item with no heroes; discarded {card_id}")
         else:
-            target_hero = p.party[0]  # MVP: first hero
-            p.hero_items[target_hero].append(card_id)
-            log.append(
-                f"[P{pid}] -> attached item {card_id}:{meta.get('name','?')} "
-                f"to hero {target_hero}:{engine.card_meta.get(target_hero, {}).get('name','?')}"
-            )
+            target_hero = policy.choose_item_attach_target(p.party, engine, p.hero_items)
+            if target_hero is None:
+                state.discard_pile.append(card_id)
+                log.append(f"[P{pid}] WARN played item with no valid hero; discarded {card_id}")
+            else:
+                p.hero_items[target_hero].append(card_id)
+                attached_hero = target_hero
+                log.append(
+                    f"[P{pid}] -> attached item {card_id}:{meta.get('name','?')} "
+                    f"to hero {target_hero}:{engine.card_meta.get(target_hero, {}).get('name','?')}"
+                )
 
     else:
         # magic/challenge/modifier/etc: discard after resolution for MVP
@@ -827,18 +939,18 @@ def play_card_from_hand(state: GameState,
     ctx: Dict[str, Any] = {
         "played_card_id": card_id,
         "played_card_type": ctype,
-        "attached_to_hero": p.party[0] if (ctype == "item" and p.party) else None,
+        "attached_to_hero": attached_hero if ctype == "item" else None,
     }
     for step in engine.effects_by_card.get(card_id, []):
         trig = step.triggers()
         if "on_play" in trig or "auto" in trig or "on_activation" in trig:
-            resolve_effect(step, state, engine, pid, ctx, rng, log)
+            resolve_effect(step, state, engine, pid, ctx, rng, policy, log)
 
     p.action_points -= cost
     for w in ctx.get("_warnings", []):
         log.append(f"[P{pid}] WARN {w}")
 
-def action_draw(state: GameState, engine: Engine, pid: int, rng: random.Random, log: List[str]) -> bool:
+def action_draw(state: GameState, engine: Engine, pid: int, rng: random.Random, policy: Policy, log: List[str]) -> bool:
     p = state.players[pid]
     if p.action_points < 1:
         return False
@@ -858,14 +970,14 @@ def action_draw(state: GameState, engine: Engine, pid: int, rng: random.Random, 
     for mid in p.captured_monsters:
         for step in engine.monster_effects.get(mid, []):
             if "on_draw" in step.triggers():
-                resolve_effect(step, state, engine, pid, ctx, rng, log)
+                resolve_effect(step, state, engine, pid, ctx, rng, policy, log)
 
     for w in ctx.get("_warnings", []):
         log.append(f"[P{pid}] WARN {w}")
 
     return True
 
-def action_activate_hero(state: GameState, engine: Engine, pid: int, rng: random.Random, log: List[str]) -> bool:
+def action_activate_hero(state: GameState, engine: Engine, pid: int, rng: random.Random, policy: Policy, log: List[str]) -> bool:
     p = state.players[pid]
     if p.action_points < 1:
         return False
@@ -881,7 +993,7 @@ def action_activate_hero(state: GameState, engine: Engine, pid: int, rng: random
             ctx = {"activated_hero_id": hero_id}
             for step in steps:
                 if "on_activation" in step.triggers() or "auto" in step.triggers():
-                    resolve_effect(step, state, engine, pid, ctx, rng, log)
+                    resolve_effect(step, state, engine, pid, ctx, rng, policy, log)
 
             for w in ctx.get("_warnings", []):
                 log.append(f"[P{pid}] WARN {w}")
@@ -889,7 +1001,7 @@ def action_activate_hero(state: GameState, engine: Engine, pid: int, rng: random
 
     return False
 
-def action_attack_monster(state: GameState, engine: Engine, pid: int, monster_id: int, rng: random.Random, log: List[str]) -> bool:
+def action_attack_monster(state: GameState, engine: Engine, pid: int, monster_id: int, rng: random.Random, policy: Policy, log: List[str]) -> bool:
     p = state.players[pid]
     if p.action_points < 2:
         return False
@@ -928,7 +1040,7 @@ def action_attack_monster(state: GameState, engine: Engine, pid: int, monster_id
 
     # Resolve monster effects (success_action/fail_action rows are just EffectSteps with triggers set)
     for step in engine.monster_effects.get(monster_id, []):
-        resolve_effect(step, state, engine, pid, ctx, rng, log)
+        resolve_effect(step, state, engine, pid, ctx, rng, policy, log)
 
     # Refill monster row if success removed the monster (often done via move_card)
     if success:
@@ -952,29 +1064,29 @@ def action_attack_monster(state: GameState, engine: Engine, pid: int, monster_id
 # Simple policy for action selection
 # -----------------------------
 
-def choose_and_take_action(state: GameState, engine: Engine, pid: int, rng: random.Random, log: List[str]) -> bool:
+def choose_and_take_action(state: GameState, engine: Engine, pid: int, rng: random.Random, policy: Policy, log: List[str]) -> bool:
     p = state.players[pid]
     if p.action_points <= 0:
         return False
 
     # 1) Attack monster if possible
     if p.action_points >= 2 and state.monster_row:
-        return action_attack_monster(state, engine, pid, state.monster_row[0], rng, log)
+        target_monster = policy.choose_monster_to_attack(state.monster_row, engine)
+        if target_monster is not None:
+            return action_attack_monster(state, engine, pid, target_monster, rng, policy, log)
 
     # 2) Activate hero if possible
-    if action_activate_hero(state, engine, pid, rng, log):
+    if action_activate_hero(state, engine, pid, rng, policy, log):
         return True
 
-    # 3) Play first non-modifier card if possible (avoid trying to "play" modifiers from hand)
-    for cid in list(p.hand):
-        ctype = str(engine.card_meta.get(cid, {}).get("type", "")).lower()
-        if ctype == "modifier":
-            continue
-        play_card_from_hand(state, engine, pid, cid, rng, log)
+    # 3) Play a non-modifier card if possible (avoid trying to "play" modifiers from hand)
+    chosen = policy.choose_card_to_play(p.hand, engine)
+    if chosen is not None:
+        play_card_from_hand(state, engine, pid, chosen, rng, policy, log)
         return True
 
     # 4) Draw
-    return action_draw(state, engine, pid, rng, log)
+    return action_draw(state, engine, pid, rng, policy, log)
 
 def pick_opponent_pid(state: GameState, pid: int) -> Optional[int]:
     # MVP: next player clockwise who has at least one hero
@@ -1254,9 +1366,10 @@ def build_engine() -> Engine:
         modifier_options_by_card_id=modifier_options_by_card_id,
     )
 
-def run_game(seed: int = 1, turns: int = 10, n_players: int = 4) -> List[str]:
+def run_game(seed: int = 1, turns: int = 10, n_players: int = 4, policy: Optional[Policy] = None) -> List[str]:
     rng = random.Random(seed)
     engine = build_engine()
+    policy = policy or Policy()
 
     draw_deck, monster_deck, leader_deck = build_decks(engine.card_meta)
     rng.shuffle(draw_deck)
@@ -1285,7 +1398,7 @@ def run_game(seed: int = 1, turns: int = 10, n_players: int = 4) -> List[str]:
 
         safety = 30
         while p.action_points > 0 and safety > 0:
-            acted = choose_and_take_action(state, engine, pid, rng, log)
+            acted = choose_and_take_action(state, engine, pid, rng, policy, log)
             if not acted:
                 break
             safety -= 1
