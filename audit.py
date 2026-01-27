@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import sys
-from typing import Set, List, Tuple
+from typing import List, Set, Tuple
+
 import pandas as pd
 
-from simulate import SUPPORTED_EFFECT_KINDS, is_condition_supported, parse_roll_condition
-
-EFFECTS_CSV = "cards - effects.csv"
-MONSTERS_CSV = "cards - monsters.csv"
+from hts_sim.conditions import is_condition_supported, parse_roll_condition
+from hts_sim.constants import EFFECTS_CSV, MONSTERS_CSV
+from hts_sim.effects import SUPPORTED_EFFECT_KINDS
 
 
 def _read_csv(path: str) -> pd.DataFrame:
@@ -131,7 +131,7 @@ def main() -> int:
             print(f"  ... ({len(bad_conditions) - 200} more)")
     print()
 
-    print(f"[4] Roll conditions likely unparseable by current parse_simple_condition() (total {len(bad_rolls)}):")
+    print(f"[4] Roll conditions likely unparseable by current parse_roll_condition() (total {len(bad_rolls)}):")
     if not bad_rolls:
         print("  (none)")
     else:
