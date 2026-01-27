@@ -323,6 +323,45 @@ def _handle_protection_from_challenge(
     ctx["protect.challenge"] = True
 
 
+def _handle_destroy_item(
+    step: EffectStep,
+    state: GameState,
+    engine: Engine,
+    pid: int,
+    ctx: Dict[str, Any],
+    rng: "random.Random",
+    policy: Policy,
+    log: List[str],
+):
+    victim_pid = ctx.get("target_pid", pid)
+    hero_id = ctx.get("attached_to_hero") or ctx.get("activated_hero_id")
+    if hero_id is None:
+        p = state.players[victim_pid]
+        candidates = [hid for hid in p.party if p.hero_items.get(hid)]
+        if not candidates:
+            ctx.setdefault("_warnings", []).append("destroy_item: no heroes with items")
+            return
+        hero_id = sorted(candidates, key=lambda hid: (-len(p.hero_items.get(hid, [])), hid))[0]
+
+    p = state.players[victim_pid]
+    items = p.hero_items.get(hero_id, [])
+    if not items:
+        ctx.setdefault("_warnings", []).append("destroy_item: hero has no items")
+        return
+
+    item_id = policy.choose_item_to_destroy(items, engine)
+    if item_id is None:
+        ctx.setdefault("_warnings", []).append("destroy_item: no item selected")
+        return
+
+    items.remove(item_id)
+    state.discard_pile.append(item_id)
+    log.append(
+        f"[P{pid}] destroy_item -> removed {item_id}:{engine.card_meta.get(item_id,{}).get('name','?')} "
+        f"from P{victim_pid} hero {hero_id}"
+    )
+
+
 EFFECT_HANDLERS = {
     "draw_card": _handle_draw,
     "draw_cards": _handle_draw,
@@ -341,6 +380,7 @@ EFFECT_HANDLERS = {
     "protection_from_steal": _handle_protection_from_steal,
     "protection_from_destroy": _handle_protection_from_destroy,
     "protection_from_challenge": _handle_protection_from_challenge,
+    "destroy_item": _handle_destroy_item,
 }
 
 SUPPORTED_EFFECT_KINDS = set(EFFECT_HANDLERS.keys())

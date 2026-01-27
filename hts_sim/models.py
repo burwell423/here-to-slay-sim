@@ -127,6 +127,12 @@ class Policy:
         )
         return ranked[0]
 
+    def choose_item_to_destroy(self, items: List[int], engine: "Engine") -> Optional[int]:
+        if not items:
+            return None
+        ranked = sorted(items, key=lambda cid: (-self.score_card_value(cid, engine), cid))
+        return ranked[0]
+
     def choose_monster_to_attack(self, monster_row: List[int], engine: "Engine") -> Optional[int]:
         if not monster_row:
             return None
