@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
-from .constants import CARDS_CSV, EFFECTS_JSON, MONSTERS_JSON
+from .constants import CARDS_CSV, EFFECTS_JSON, MONSTERS_CSV, MONSTERS_JSON
 from .models import EffectStep, Engine, MonsterRule
 
 
@@ -74,6 +74,16 @@ def load_monsters(monsters_json: str = MONSTERS_JSON) -> Tuple[Dict[int, Monster
     with open(monsters_json, encoding="utf-8") as f:
         payload = json.load(f)
 
+    df = pd.read_csv(MONSTERS_CSV)
+    df = df.loc[:, ~df.columns.str.contains(r"^Unnamed")]
+    attack_requirements: Dict[int, str] = {}
+    for _, r in df.iterrows():
+        raw = str(r.get("attack_requirements") or "").strip()
+        if not raw or raw.lower() == "nan":
+            continue
+        mid = int(r["card_id"])
+        attack_requirements.setdefault(mid, raw)
+
     for r in payload.get("attack_rules", []):
         mid = int(r["monster_id"])
         attack_rule[mid] = MonsterRule(
@@ -82,6 +92,7 @@ def load_monsters(monsters_json: str = MONSTERS_JSON) -> Tuple[Dict[int, Monster
             fail_condition=None if str(r.get("fail_condition") or "").strip() in ("", "nan") else str(r.get("fail_condition")).strip(),
             success_action=None if str(r.get("success_action") or "").strip() in ("", "nan") else str(r.get("success_action")).strip(),
             fail_action=None if str(r.get("fail_action") or "").strip() in ("", "nan") else str(r.get("fail_action")).strip(),
+            attack_requirements=attack_requirements.get(mid),
         )
 
     for r in payload.get("effects", []):

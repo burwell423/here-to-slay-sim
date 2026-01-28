@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 from .challenges import maybe_challenge_play
 from .conditions import goal_satisfied, parse_simple_condition
 from .effects import resolve_effect
+from .game_helpers import can_player_attack_monster
 from .models import Engine, GameState, Policy
 from .rolls import resolve_roll_event
 
@@ -194,6 +195,9 @@ def action_attack_monster(
         return False
     if monster_id not in state.monster_row:
         return False
+    if not can_player_attack_monster(p, engine, monster_id):
+        log.append(f"[P{pid}] WARN cannot attack monster {monster_id} (requirements unmet)")
+        return False
 
     rule = engine.monster_attack_rules.get(monster_id)
     if not rule or not rule.success_condition:
@@ -282,7 +286,10 @@ def choose_and_take_action(
         return False
 
     if p.action_points >= 2 and state.monster_row:
-        target_monster = policy.choose_monster_to_attack(state.monster_row, engine)
+        eligible_monsters = [
+            mid for mid in state.monster_row if can_player_attack_monster(p, engine, mid)
+        ]
+        target_monster = policy.choose_monster_to_attack(eligible_monsters, engine)
         if target_monster is not None:
             return action_attack_monster(state, engine, pid, target_monster, rng, policy, log)
 
