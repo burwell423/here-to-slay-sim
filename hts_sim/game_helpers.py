@@ -1,6 +1,7 @@
-from typing import List, Optional, Set
+import re
+from typing import Dict, List, Optional, Set, Tuple
 
-from .models import Engine, GameState
+from .models import Engine, GameState, PlayerState
 from .utils import format_card_list
 
 
@@ -41,6 +42,44 @@ def collect_party_classes(engine: Engine, player: "PlayerState") -> Set[str]:
         if leader_class:
             classes.add(leader_class)
     return classes
+
+
+def parse_attack_requirements(attack_requirements: str) -> List[Tuple[int, str]]:
+    if not attack_requirements:
+        return []
+    pairs = re.findall(r"(\\d+)\\s*\\(([^)]+)\\)", attack_requirements)
+    return [(int(count), cls.strip().lower()) for count, cls in pairs]
+
+
+def collect_party_class_counts(engine: Engine, player: PlayerState) -> Dict[str, int]:
+    counts: Dict[str, int] = {}
+    for hero_id in player.party:
+        hero_class = get_hero_class(engine, player, hero_id)
+        if hero_class:
+            counts[hero_class] = counts.get(hero_class, 0) + 1
+    if player.party_leader is not None:
+        leader_class = str(engine.card_meta.get(player.party_leader, {}).get("subtype", "")).strip().lower()
+        if leader_class:
+            counts[leader_class] = counts.get(leader_class, 0) + 1
+    return counts
+
+
+def can_player_attack_monster(player: PlayerState, engine: Engine, monster_id: int) -> bool:
+    rule = engine.monster_attack_rules.get(monster_id)
+    if not rule or not rule.attack_requirements:
+        return True
+    requirements = parse_attack_requirements(rule.attack_requirements)
+    if not requirements:
+        return True
+    total_heroes = len(player.party) + (1 if player.party_leader is not None else 0)
+    class_counts = collect_party_class_counts(engine, player)
+    for count, req_class in requirements:
+        if req_class == "any":
+            if total_heroes < count:
+                return False
+        elif class_counts.get(req_class, 0) < count:
+            return False
+    return True
 
 
 def destroy_hero_card(state: GameState, engine: Engine, victim_pid: int, hero_id: int, log: List[str]) -> bool:
