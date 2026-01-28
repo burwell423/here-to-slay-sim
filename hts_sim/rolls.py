@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 
 from .conditions import goal_satisfied, roll_2d6
-from .models import Engine, GameState
+from .models import Engine, GameState, Policy
 from .utils import find_modifier_cards
 
 
@@ -43,6 +43,7 @@ def resolve_roll_event(
     roll_reason: str,
     rng: "random.Random",
     log: List[str],
+    policy: Policy,
     goal: Optional[Tuple[str, int]] = None,
     mode: str = "threshold",
     hero_id: Optional[int] = None,
@@ -52,6 +53,21 @@ def resolve_roll_event(
       - 'threshold': use goal ('>=',X) or ('<=',X) to decide whether to play mods
       - 'maximize': roller wants high, others want low (challenge-style)
     """
+    ctx = {"roll_player": roller_pid, "roll_reason": roll_reason}
+    if roll_reason.startswith("challenge:"):
+        for mid in state.players[roller_pid].captured_monsters:
+            for step in engine.monster_effects.get(mid, []):
+                if "on_challenge_roll" in step.triggers():
+                    from .effects import resolve_effect
+
+                    resolve_effect(step, state, engine, roller_pid, ctx, rng, policy, log)
+    for mid in state.players[roller_pid].captured_monsters:
+        for step in engine.monster_effects.get(mid, []):
+            if "on_roll" in step.triggers():
+                from .effects import resolve_effect
+
+                resolve_effect(step, state, engine, roller_pid, ctx, rng, policy, log)
+
     base = roll_2d6(rng)
     total = base
     log.append(f"[ROLL:{roll_reason}] P{roller_pid} base 2d6 = {base}")
@@ -155,6 +171,18 @@ def resolve_roll_event(
                     f"[ROLL:{roll_reason}] P{pid} plays modifier {source_id} "
                     f"({played_name}) choose {chosen_delta:+d} -> total={total + chosen_delta}"
                 )
+                ctx = {
+                    "roll_player": roller_pid,
+                    "modifier_player": pid,
+                    "modifier_card": engine.card_meta.get(source_id, {"id": source_id}),
+                }
+                for owner in state.players:
+                    for mid in owner.captured_monsters:
+                        for step in engine.monster_effects.get(mid, []):
+                            if "on_modifier_played" in step.triggers():
+                                from .effects import resolve_effect
+
+                                resolve_effect(step, state, engine, owner.pid, ctx, rng, policy, log)
             else:
                 modifier_entry = (source_card_id, chosen_delta, None)
                 for entry in list(active_mods):

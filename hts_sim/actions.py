@@ -218,6 +218,7 @@ def action_attack_monster(
         roll_reason=f"monster:{engine.card_meta.get(monster_id,{}).get('name','?')}",
         rng=rng,
         log=log,
+        policy=policy,
         goal=(op, target),
         mode="threshold",
     )

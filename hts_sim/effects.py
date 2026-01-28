@@ -61,7 +61,22 @@ def _handle_discard(
     log: List[str],
 ):
     n = step.amount if step.amount is not None else 1
-    hand = state.players[pid].hand
+    target_pid = pid
+    if step.source_zone:
+        zone = step.source_zone.strip().lower()
+        if zone == "challenge.source":
+            challenger = ctx.get("challenge", {}).get("challenger_pid")
+            if challenger is None:
+                ctx.setdefault("_warnings", []).append("discard_card: missing challenge.challenger_pid")
+            else:
+                target_pid = challenger
+        elif zone == "challenge.target":
+            target = ctx.get("challenge", {}).get("target_pid")
+            if target is None:
+                ctx.setdefault("_warnings", []).append("discard_card: missing challenge.target_pid")
+            else:
+                target_pid = target
+    hand = state.players[target_pid].hand
     for _ in range(min(n, len(hand))):
         chosen = policy.choose_discard_card(hand, engine)
         if chosen is None:
@@ -69,7 +84,7 @@ def _handle_discard(
         hand.remove(chosen)
         cid = chosen
         state.discard_pile.append(cid)
-        log.append(f"[P{pid}] discarded card_id={cid}")
+        log.append(f"[P{target_pid}] discarded card_id={cid}")
 
 
 def _handle_move(
@@ -162,10 +177,18 @@ def _handle_steal_hero(
     amount = step.amount if step.amount is not None else 1
     for _ in range(min(amount, len(source_party))):
         chosen: Optional[int] = None
-        if step.filter_expr and str(step.filter_expr).strip().lower() == "hero==active":
-            active = ctx.get("activated_hero_id")
-            if isinstance(active, int) and active in source_party:
-                chosen = active
+        if step.filter_expr:
+            filter_expr = str(step.filter_expr).strip().lower()
+            if filter_expr == "hero==active":
+                active = ctx.get("activated_hero_id")
+                if isinstance(active, int) and active in source_party:
+                    chosen = active
+            elif filter_expr == "hero==destroyed":
+                destroyed = ctx.get("destroyed_hero_id")
+                if destroyed is None and isinstance(ctx.get("hero_destroyed"), dict):
+                    destroyed = ctx["hero_destroyed"].get("id")
+                if isinstance(destroyed, int) and destroyed in source_party:
+                    chosen = destroyed
         if chosen is None:
             chosen = policy.choose_steal_hero(source_party, engine, state.players[source_pid].hero_items)
         if chosen is None:
@@ -442,6 +465,55 @@ def _handle_search_and_draw(
     log.append(f"[P{pid}] searched {step.source_zone} and took card_id={cid} to {step.dest_zone}")
 
 
+def _resolve_hero_destruction(
+    state: GameState,
+    engine: Engine,
+    source_pid: int,
+    victim_pid: int,
+    hero_id: int,
+    rng: "random.Random",
+    policy: Policy,
+    log: List[str],
+) -> bool:
+    ctx: Dict[str, Any] = {
+        "hero_destroyed": {"id": hero_id, "target": victim_pid, "source": source_pid},
+        "hero": {"id": hero_id, "owner": victim_pid},
+        "destroyed_hero_id": hero_id,
+    }
+
+    pre_effects = {"deny", "steal_hero", "protection_from_destroy"}
+    for owner in state.players:
+        for mid in owner.captured_monsters:
+            for step in engine.monster_effects.get(mid, []):
+                if "on_hero_destroyed" not in step.triggers():
+                    continue
+                if (step.effect_kind or "").strip() not in pre_effects:
+                    continue
+                resolve_effect(step, state, engine, owner.pid, ctx, rng, policy, log)
+
+    if ctx.get("denied") or ctx.get("protect.destroy"):
+        log.append(f"[P{victim_pid}] hero {hero_id} destruction prevented")
+        return False
+
+    if hero_id not in state.players[victim_pid].party:
+        return False
+
+    destroyed = destroy_hero_card(state, engine, victim_pid, hero_id, log)
+    if not destroyed:
+        return False
+
+    for owner in state.players:
+        for mid in owner.captured_monsters:
+            for step in engine.monster_effects.get(mid, []):
+                if "on_hero_destroyed" not in step.triggers():
+                    continue
+                if (step.effect_kind or "").strip() in pre_effects:
+                    continue
+                resolve_effect(step, state, engine, owner.pid, ctx, rng, policy, log)
+
+    return True
+
+
 def _handle_destroy_hero(
     step: EffectStep,
     state: GameState,
@@ -465,7 +537,7 @@ def _handle_destroy_hero(
         return
 
     log.append(f"[P{pid}] destroy_hero targets P{victim_pid} hero {hid}")
-    destroy_hero_card(state, engine, victim_pid, hid, log)
+    _resolve_hero_destruction(state, engine, pid, victim_pid, hid, rng, policy, log)
 
 
 def _handle_sacrifice_hero(
@@ -485,7 +557,7 @@ def _handle_sacrifice_hero(
         return
 
     log.append(f"[P{pid}] sacrifice_hero by P{victim_pid} chooses hero {hid}")
-    destroy_hero_card(state, engine, victim_pid, hid, log)
+    _resolve_hero_destruction(state, engine, victim_pid, victim_pid, hid, rng, policy, log)
 
 
 def _handle_do_nothing(
@@ -1043,6 +1115,8 @@ def resolve_effect(
     policy: Policy,
     log: List[str],
 ):
+    ctx.setdefault("player", pid)
+
     if not eval_condition(step.condition, ctx):
         return
 
@@ -1054,6 +1128,11 @@ def resolve_effect(
             ctx["target_pid"] = pid
 
     if step.requires_roll:
+        for mid in state.players[pid].captured_monsters:
+            for mstep in engine.monster_effects.get(mid, []):
+                if "on_hero_roll" in mstep.triggers():
+                    resolve_effect(mstep, state, engine, pid, ctx, rng, policy, log)
+
         op, target = parse_simple_condition(step.roll_condition)
         final = resolve_roll_event(
             state=state,
@@ -1065,6 +1144,7 @@ def resolve_effect(
             goal=(op, target),
             mode="threshold",
             hero_id=ctx.get("activated_hero_id"),
+            policy=policy,
         )
         ok = goal_satisfied(final, op, target)
         log.append(
@@ -1072,6 +1152,12 @@ def resolve_effect(
         )
         if not ok:
             return
+
+        ctx.update({"roll.total": final, "roll.success": ok, "roll_player": pid})
+        for mid in state.players[pid].captured_monsters:
+            for mstep in engine.monster_effects.get(mid, []):
+                if "on_hero_roll_success" in mstep.triggers():
+                    resolve_effect(mstep, state, engine, pid, ctx, rng, policy, log)
 
     ek = (step.effect_kind or "").strip()
     handler = EFFECT_HANDLERS.get(ek)
