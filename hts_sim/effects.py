@@ -104,9 +104,15 @@ def _handle_move(
     dst = get_zone(state, pid, step.dest_zone)
     if not src:
         return
-    chosen = policy.choose_move_card(src, step.dest_zone.strip(), engine)
+    chosen = None
+    if step.source_zone.strip().lower() == "monster_row":
+        target_monster_id = ctx.get("target_monster_id")
+        if target_monster_id in src:
+            chosen = target_monster_id
     if chosen is None:
-        return
+        chosen = policy.choose_move_card(src, step.dest_zone.strip(), engine)
+        if chosen is None:
+            return
     src.remove(chosen)
     cid = chosen
     dst.append(cid)
