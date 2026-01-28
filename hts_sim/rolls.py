@@ -81,17 +81,16 @@ def resolve_roll_event(
         before_ok = goal_satisfied(before, op, target)
         after_ok = goal_satisfied(after, op, target)
 
+        if before_ok == after_ok:
+            return 0
+
         if pid == roller_pid:
             if (not before_ok) and after_ok:
                 return 1000 + abs(after - before)
-            if before_ok and after_ok:
-                return 10 + (before - after if op == "<=" else after - before)
             return (after - before if op == ">=" else before - after)
         else:
             if before_ok and (not after_ok):
                 return 1000 + abs(after - before)
-            if (not before_ok) and (not after_ok):
-                return 10 + (after - before if op == "<=" else before - after)
             return (before - after if op == ">=" else after - before)
 
     for pid in ordered:
@@ -111,45 +110,66 @@ def resolve_roll_event(
         if not mods and not active_mods:
             continue
 
-        best = None  # (score, source_type, source_id, chosen_delta, source_card_id)
+        sources: List[Tuple[str, int, Optional[int], List[int]]] = []
         for mid in mods:
             deltas = engine.modifier_options_by_card_id.get(mid, [])
-            if not deltas:
+            if deltas:
+                sources.append(("card", mid, None, deltas))
+
+        for source_card_id, delta, _expires in active_mods:
+            sources.append(("effect", delta, source_card_id, [delta]))
+
+        states: dict[int, List[Tuple[str, int, Optional[int], int]]] = {0: []}
+        for source_type, source_id, source_card_id, deltas in sources:
+            updated = dict(states)
+            for current_delta, choices in states.items():
+                for d in deltas:
+                    next_delta = current_delta + d
+                    next_choices = choices + [(source_type, source_id, source_card_id, d)]
+                    existing = updated.get(next_delta)
+                    if existing is None or len(next_choices) < len(existing):
+                        updated[next_delta] = next_choices
+            states = updated
+
+        best_score = 0
+        best_choices: Optional[List[Tuple[str, int, Optional[int], int]]] = None
+        for delta_total, choices in states.items():
+            if not choices:
                 continue
-            for d in deltas:
-                score = improvement_score_before_after(total, total + d, pid)
-                if best is None or score > best[0]:
-                    best = (score, "card", mid, d, None)
+            score = improvement_score_before_after(total, total + delta_total, pid)
+            if score <= 0:
+                continue
+            if best_choices is None or (score, -len(choices)) > (best_score, -len(best_choices)):
+                best_score = score
+                best_choices = choices
 
-        for idx, (source_card_id, delta, _expires) in enumerate(active_mods):
-            score = improvement_score_before_after(total, total + delta, pid)
-            if best is None or score > best[0]:
-                best = (score, "effect", idx, delta, source_card_id)
-
-        if not best:
+        if not best_choices:
             continue
 
-        score, source_type, source_id, chosen_delta, source_card_id = best
-        if score <= 0:
-            continue
+        for source_type, source_id, source_card_id, chosen_delta in best_choices:
+            if source_type == "card":
+                player.hand.remove(source_id)
+                state.discard_pile.append(source_id)
+                played_name = engine.card_meta.get(source_id, {}).get("name", "?")
+                log.append(
+                    f"[ROLL:{roll_reason}] P{pid} plays modifier {source_id} "
+                    f"({played_name}) choose {chosen_delta:+d} -> total={total + chosen_delta}"
+                )
+            else:
+                modifier_entry = (source_card_id, chosen_delta, None)
+                for entry in list(active_mods):
+                    if entry[0] == source_card_id and entry[1] == chosen_delta:
+                        active_mods.remove(entry)
+                        modifier_entry = entry
+                        break
+                source_name = engine.card_meta.get(source_card_id or 0, {}).get("name", "?")
+                log.append(
+                    f"[ROLL:{roll_reason}] P{pid} uses roll modifier {modifier_entry[1]:+d} "
+                    f"from {source_card_id}:{source_name} -> total={total + chosen_delta}"
+                )
 
-        if source_type == "card":
-            player.hand.remove(source_id)
-            state.discard_pile.append(source_id)
-            played_name = engine.card_meta.get(source_id, {}).get("name", "?")
-            log.append(
-                f"[ROLL:{roll_reason}] P{pid} plays modifier {source_id} "
-                f"({played_name}) choose {chosen_delta:+d} -> total={total + chosen_delta}"
-            )
-        else:
-            modifier_source = active_mods.pop(source_id)
-            source_name = engine.card_meta.get(source_card_id or 0, {}).get("name", "?")
-            log.append(
-                f"[ROLL:{roll_reason}] P{pid} uses roll modifier {modifier_source[1]:+d} "
-                f"from {source_card_id}:{source_name} -> total={total + chosen_delta}"
-            )
+            total += chosen_delta
 
-        total += chosen_delta
         used_by_player.add(pid)
 
     log.append(f"[ROLL:{roll_reason}] FINAL total = {total}")
