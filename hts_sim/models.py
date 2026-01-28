@@ -176,6 +176,13 @@ class Policy:
         )
         return ranked[0]
 
+    def choose_trade_partner(self, state: "GameState", pid: int) -> Optional[int]:
+        candidates = [p for p in state.players if p.pid != pid]
+        if not candidates:
+            return None
+        ranked = sorted(candidates, key=lambda p: (-len(p.hand), p.pid))
+        return ranked[0].pid
+
     def should_challenge(self, rng: random.Random) -> bool:
         return rng.random() < self.challenge.challenge_probability
 
