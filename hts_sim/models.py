@@ -63,7 +63,7 @@ class MonsterRule:
     fail_condition: Optional[str]
     success_action: Optional[str]
     fail_action: Optional[str]
-    attack_requirements: Optional[str] = None
+    attack_requirements: Optional[Dict[str, int]] = None
 
 
 @dataclass
