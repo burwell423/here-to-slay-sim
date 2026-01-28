@@ -1,139 +1,175 @@
 {
   "attack_rules": [
     {
+      "attack_requirements": {
+        "any": 3
+      },
       "fail_action": "sacrifice_hero",
       "fail_condition": "<=6",
       "monster_id": 80,
       "name": "Anuran Cauldron",
       "success_action": "claim_monster",
-      "success_condition": ">=7",
-      "attack_requirements": "3 (any)"
+      "success_condition": ">=7"
     },
     {
+      "attack_requirements": {
+        "any": 1,
+        "thief": 1
+      },
       "fail_action": "discard",
       "fail_condition": "<=4",
       "monster_id": 81,
       "name": "Warworn Owlbear",
       "success_action": "claim_monster",
-      "success_condition": ">=7",
-      "attack_requirements": "1 (any) 1 (thief)"
+      "success_condition": ">=7"
     },
     {
+      "attack_requirements": {
+        "any": 1,
+        "wizard": 1
+      },
       "fail_action": "discard",
       "fail_condition": "<=4",
       "monster_id": 82,
       "name": "Orthus",
       "success_action": "claim_monster",
-      "success_condition": ">=7",
-      "attack_requirements": "1 (any) 1 (wizard)"
+      "success_condition": ">=7"
     },
     {
+      "attack_requirements": {
+        "any": 1,
+        "guardian": 1
+      },
       "fail_action": "discard",
       "fail_condition": "<=4",
       "monster_id": 83,
       "name": "Rex Major",
       "success_action": "claim_monster",
-      "success_condition": ">=7",
-      "attack_requirements": "1 (any) 1 (guardian)"
+      "success_condition": ">=7"
     },
     {
+      "attack_requirements": {
+        "any": 1,
+        "hunter": 1
+      },
       "fail_action": "discard",
       "fail_condition": "<=4",
       "monster_id": 84,
       "name": "Malamammoth",
       "success_action": "claim_monster",
-      "success_condition": ">=7",
-      "attack_requirements": "1 (any) 1 (hunter)"
+      "success_condition": ">=7"
     },
     {
+      "attack_requirements": {
+        "any": 1,
+        "fighter": 1
+      },
       "fail_action": "discard",
       "fail_condition": "<=4",
       "monster_id": 85,
       "name": "Titan Wyvern",
       "success_action": "claim_monster",
-      "success_condition": ">=7",
-      "attack_requirements": "1 (any) 1 (fighter)"
+      "success_condition": ">=7"
     },
     {
+      "attack_requirements": {
+        "any": 1,
+        "bard": 1
+      },
       "fail_action": "discard",
       "fail_condition": "<=4",
       "monster_id": 86,
       "name": "Dark Dragon King",
       "success_action": "claim_monster",
-      "success_condition": ">=7",
-      "attack_requirements": "1 (any) 1 (bard)"
+      "success_condition": ">=7"
     },
     {
+      "attack_requirements": {
+        "any": 1
+      },
       "fail_action": "sacrifice_hero",
       "fail_condition": ">=8",
       "monster_id": 87,
       "name": "Dracos",
       "success_action": "claim_monster",
-      "success_condition": "<=5",
-      "attack_requirements": "1 (any)"
+      "success_condition": "<=5"
     },
     {
+      "attack_requirements": {
+        "any": 2
+      },
       "fail_action": "sacrifice_hero",
       "fail_condition": "<=6",
       "monster_id": 88,
       "name": "Bloodwing",
       "success_action": "claim_monster",
-      "success_condition": ">=9",
-      "attack_requirements": "2 (any)"
+      "success_condition": ">=9"
     },
     {
+      "attack_requirements": {
+        "any": 4
+      },
       "fail_action": "sacrifice_hero",
       "fail_condition": "<=7",
       "monster_id": 89,
       "name": "Mega Slime",
       "success_action": "claim_monster",
-      "success_condition": ">=8",
-      "attack_requirements": "4 (any)"
+      "success_condition": ">=8"
     },
     {
+      "attack_requirements": {
+        "any": 2
+      },
       "fail_action": "sacrifice_hero",
       "fail_condition": "<=5",
       "monster_id": 90,
       "name": "Abyss Queen",
       "success_action": "claim_monster",
-      "success_condition": ">=8",
-      "attack_requirements": "2 (any)"
+      "success_condition": ">=8"
     },
     {
+      "attack_requirements": {
+        "any": 1
+      },
       "fail_action": "sacrifice_hero",
       "fail_condition": "<=5",
       "monster_id": 91,
       "name": "Arctic Aries",
       "success_action": "claim_monster",
-      "success_condition": ">=8",
-      "attack_requirements": "1 (any)"
+      "success_condition": ">=8"
     },
     {
+      "attack_requirements": {
+        "any": 3
+      },
       "fail_action": "discard_card",
       "fail_condition": "<=6",
       "monster_id": 92,
       "name": "Corrupted Sabretooth",
       "success_action": "claim_monster",
-      "success_condition": ">=9",
-      "attack_requirements": "3 (any)"
+      "success_condition": ">=9"
     },
     {
+      "attack_requirements": {
+        "any": 2
+      },
       "fail_action": "sacrifice_hero",
       "fail_condition": "<=7",
       "monster_id": 93,
       "name": "Crowned Serpent",
       "success_action": "claim_monster",
-      "success_condition": ">=10",
-      "attack_requirements": "2 (any)"
+      "success_condition": ">=10"
     },
     {
+      "attack_requirements": {
+        "any": 1
+      },
       "fail_action": "sacrifice_hero",
       "fail_condition": "<=7",
       "monster_id": 94,
       "name": "Terratuga",
       "success_action": "claim_monster",
-      "success_condition": ">=11",
-      "attack_requirements": "1 (any)"
+      "success_condition": ">=11"
     }
   ],
   "effects": [
