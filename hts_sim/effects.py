@@ -122,6 +122,66 @@ def _handle_steal(
     log.append(f"[P{pid}] stole card_id={cid} from P{opp}")
 
 
+def _resolve_party_pid(state: GameState, pid: int, zone: Optional[str]) -> Optional[int]:
+    if not zone:
+        return None
+    z = zone.strip().lower()
+    if z.startswith("player."):
+        return pid
+    if z.startswith("opponent."):
+        return pick_opponent_pid(state, pid)
+    if z.startswith("opponents."):
+        return pick_opponent_pid(state, pid)
+    return None
+
+
+def _handle_steal_hero(
+    step: EffectStep,
+    state: GameState,
+    engine: Engine,
+    pid: int,
+    ctx: Dict[str, Any],
+    rng: "random.Random",
+    policy: Policy,
+    log: List[str],
+):
+    source_pid = _resolve_party_pid(state, pid, step.source_zone)
+    dest_pid = _resolve_party_pid(state, pid, step.dest_zone)
+    if source_pid is None or dest_pid is None:
+        ctx.setdefault("_warnings", []).append(f"steal_hero: unresolved source/dest {step.source_zone}->{step.dest_zone}")
+        return
+    source_party = state.players[source_pid].party
+    if not source_party:
+        return
+    amount = step.amount if step.amount is not None else 1
+    for _ in range(min(amount, len(source_party))):
+        chosen: Optional[int] = None
+        if step.filter_expr and str(step.filter_expr).strip().lower() == "hero==active":
+            active = ctx.get("activated_hero_id")
+            if isinstance(active, int) and active in source_party:
+                chosen = active
+        if chosen is None:
+            chosen = policy.choose_steal_hero(source_party, engine, state.players[source_pid].hero_items)
+        if chosen is None:
+            return
+        if chosen not in source_party:
+            return
+        source_party.remove(chosen)
+        state.players[dest_pid].party.append(chosen)
+        items = list(state.players[source_pid].hero_items.get(chosen, []))
+        if items:
+            state.players[source_pid].hero_items[chosen] = []
+            state.players[dest_pid].hero_items[chosen].extend(items)
+        overrides = state.players[source_pid].hero_class_overrides.pop(chosen, None)
+        if overrides:
+            state.players[dest_pid].hero_class_overrides[chosen] = overrides
+        ctx["stolen_hero"] = engine.card_meta.get(chosen, {"id": chosen, "type": "hero"})
+        log.append(
+            f"[P{pid}] stole hero {chosen} from P{source_pid} -> P{dest_pid}"
+            f"{' (with items)' if items else ''}"
+        )
+
+
 def _handle_play_immediately(
     step: EffectStep,
     state: GameState,
@@ -683,6 +743,7 @@ EFFECT_HANDLERS = {
     "discard_cards": _handle_discard,
     "move_card": _handle_move,
     "steal_card": _handle_steal,
+    "steal_hero": _handle_steal_hero,
     "play_immediately": _handle_play_immediately,
     "play_drawn_immediately": _handle_play_drawn_immediately,
     "deny_challenge": _handle_deny_challenge,
