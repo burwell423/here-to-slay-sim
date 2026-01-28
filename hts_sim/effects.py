@@ -319,6 +319,50 @@ def _handle_play_drawn_immediately(
     )
 
 
+def _handle_play_card(
+    step: EffectStep,
+    state: GameState,
+    engine: Engine,
+    pid: int,
+    ctx: Dict[str, Any],
+    rng: "random.Random",
+    policy: Policy,
+    log: List[str],
+):
+    from .actions import play_card_from_hand
+
+    hand = state.players[pid].hand
+    if not hand:
+        return
+
+    candidates = [cid for cid in hand if _filter_matches_card(engine, cid, step.filter_expr)]
+    if not candidates:
+        return
+
+    amount = step.amount if step.amount is not None else 1
+    for _ in range(min(amount, len(candidates))):
+        chosen = policy.choose_card_to_play(candidates, engine)
+        if chosen is None:
+            return
+        if chosen not in candidates:
+            return
+        candidates.remove(chosen)
+        play_card_from_hand(
+            state=state,
+            engine=engine,
+            pid=pid,
+            card_id=chosen,
+            rng=rng,
+            policy=policy,
+            log=log,
+            cost_override=0,
+            allow_challenge=True,
+        )
+
+    state.players[pid].action_points += 1
+    log.append(f"[P{pid}] play_card granted +1 action (now {state.players[pid].action_points})")
+
+
 def _handle_deny_challenge(
     step: EffectStep,
     state: GameState,
@@ -965,6 +1009,7 @@ EFFECT_HANDLERS = {
     "swap_hero": _handle_swap_hero,
     "play_immediately": _handle_play_immediately,
     "play_drawn_immediately": _handle_play_drawn_immediately,
+    "play_card": _handle_play_card,
     "deny_challenge": _handle_deny_challenge,
     "trade_hands": _handle_trade_hands,
     "search_and_draw": _handle_search_and_draw,
