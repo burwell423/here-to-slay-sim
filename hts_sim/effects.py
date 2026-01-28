@@ -108,6 +108,9 @@ def _handle_steal(
     policy: Policy,
     log: List[str],
 ):
+    if ctx.get("protect.steal"):
+        log.append(f"[P{pid}] steal_card blocked by protection ({step.name})")
+        return
     opp = (pid + 1) % len(state.players)
     opp_hand = state.players[opp].hand
     if not opp_hand:
@@ -145,6 +148,9 @@ def _handle_steal_hero(
     policy: Policy,
     log: List[str],
 ):
+    if ctx.get("protect.steal"):
+        log.append(f"[P{pid}] steal_hero blocked by protection ({step.name})")
+        return
     source_pid = _resolve_party_pid(state, pid, step.source_zone)
     dest_pid = _resolve_party_pid(state, pid, step.dest_zone)
     if source_pid is None or dest_pid is None:
@@ -180,6 +186,84 @@ def _handle_steal_hero(
             f"[P{pid}] stole hero {chosen} from P{source_pid} -> P{dest_pid}"
             f"{' (with items)' if items else ''}"
         )
+
+
+def _transfer_hero(
+    state: GameState,
+    engine: Engine,
+    source_pid: int,
+    dest_pid: int,
+    hero_id: int,
+    log: List[str],
+    label: str,
+) -> bool:
+    source = state.players[source_pid]
+    dest = state.players[dest_pid]
+    if hero_id not in source.party:
+        return False
+    source.party.remove(hero_id)
+    dest.party.append(hero_id)
+    items = list(source.hero_items.get(hero_id, []))
+    if items:
+        source.hero_items[hero_id] = []
+        dest.hero_items[hero_id].extend(items)
+    overrides = source.hero_class_overrides.pop(hero_id, None)
+    if overrides:
+        dest.hero_class_overrides[hero_id] = overrides
+    log.append(
+        f"[P{source_pid}] {label} hero {hero_id}:{engine.card_meta.get(hero_id,{}).get('name','?')} -> P{dest_pid}"
+        f"{' (with items)' if items else ''}"
+    )
+    return True
+
+
+def _handle_swap_hero(
+    step: EffectStep,
+    state: GameState,
+    engine: Engine,
+    pid: int,
+    ctx: Dict[str, Any],
+    rng: "random.Random",
+    policy: Policy,
+    log: List[str],
+):
+    if ctx.get("protect.steal"):
+        log.append(f"[P{pid}] swap_hero blocked by protection ({step.name})")
+        return
+    source_pid = _resolve_party_pid(state, pid, step.source_zone)
+    dest_pid = _resolve_party_pid(state, pid, step.dest_zone)
+    if source_pid is None or dest_pid is None:
+        ctx.setdefault("_warnings", []).append(f"swap_hero: unresolved source/dest {step.source_zone}->{step.dest_zone}")
+        return
+    active_hero_id = ctx.get("activated_hero_id")
+    if not isinstance(active_hero_id, int):
+        ctx.setdefault("_warnings", []).append("swap_hero: missing activated hero")
+        return
+    active_owner = _find_hero_owner(state, active_hero_id)
+    if active_owner is None:
+        ctx.setdefault("_warnings", []).append("swap_hero: activated hero not found")
+        return
+
+    source_party = state.players[source_pid].party
+    if not source_party:
+        return
+    amount = step.amount if step.amount is not None else 1
+    for _ in range(min(amount, len(source_party))):
+        chosen: Optional[int] = None
+        if step.filter_expr and str(step.filter_expr).strip().lower() == "hero==active":
+            if active_hero_id in source_party:
+                chosen = active_hero_id
+        if chosen is None:
+            chosen = policy.choose_steal_hero(source_party, engine, state.players[source_pid].hero_items)
+        if chosen is None:
+            return
+        if chosen not in source_party:
+            return
+        if not _transfer_hero(state, engine, source_pid, dest_pid, chosen, log, "swap_hero stole"):
+            return
+        if not _transfer_hero(state, engine, active_owner, source_pid, active_hero_id, log, "swap_hero sent"):
+            return
+        ctx["stolen_hero"] = engine.card_meta.get(chosen, {"id": chosen, "type": "hero"})
 
 
 def _handle_play_immediately(
@@ -744,6 +828,7 @@ EFFECT_HANDLERS = {
     "move_card": _handle_move,
     "steal_card": _handle_steal,
     "steal_hero": _handle_steal_hero,
+    "swap_hero": _handle_swap_hero,
     "play_immediately": _handle_play_immediately,
     "play_drawn_immediately": _handle_play_drawn_immediately,
     "deny_challenge": _handle_deny_challenge,
