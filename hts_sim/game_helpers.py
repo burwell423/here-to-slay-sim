@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Set
 
 from .models import Engine, GameState
 from .utils import format_card_list
@@ -20,6 +20,27 @@ def get_zone(state: GameState, pid: int, zone: str) -> List[int]:
     if z == "monster_row":
         return state.monster_row
     raise KeyError(f"Unknown zone: {zone}")
+
+
+def get_hero_class(engine: Engine, player: "PlayerState", hero_id: int) -> Optional[str]:
+    overrides = player.hero_class_overrides.get(hero_id)
+    if overrides:
+        return overrides[-1][1].strip().lower() or None
+    subtype = str(engine.card_meta.get(hero_id, {}).get("subtype", "")).strip().lower()
+    return subtype or None
+
+
+def collect_party_classes(engine: Engine, player: "PlayerState") -> Set[str]:
+    classes: Set[str] = set()
+    for hero_id in player.party:
+        hero_class = get_hero_class(engine, player, hero_id)
+        if hero_class:
+            classes.add(hero_class)
+    if player.party_leader is not None:
+        leader_class = str(engine.card_meta.get(player.party_leader, {}).get("subtype", "")).strip().lower()
+        if leader_class:
+            classes.add(leader_class)
+    return classes
 
 
 def destroy_hero_card(state: GameState, engine: Engine, victim_pid: int, hero_id: int, log: List[str]) -> bool:
