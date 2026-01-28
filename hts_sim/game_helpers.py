@@ -1,5 +1,5 @@
 import re
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from .models import Engine, GameState, PlayerState
 from .utils import format_card_list
@@ -44,11 +44,33 @@ def collect_party_classes(engine: Engine, player: "PlayerState") -> Set[str]:
     return classes
 
 
-def parse_attack_requirements(attack_requirements: str) -> List[Tuple[int, str]]:
+def parse_attack_requirements(attack_requirements: Optional[Union[str, Dict[str, int]]]) -> Dict[str, int]:
     if not attack_requirements:
-        return []
-    pairs = re.findall(r"(\\d+)\\s*\\(([^)]+)\\)", attack_requirements)
-    return [(int(count), cls.strip().lower()) for count, cls in pairs]
+        return {}
+    if isinstance(attack_requirements, dict):
+        return {key.strip().lower(): int(value) for key, value in attack_requirements.items()}
+
+    normalized = attack_requirements.strip()
+    if not normalized:
+        return {}
+
+    requirements: Dict[str, int] = {}
+    key_value_pairs = re.findall(r"([a-zA-Z][a-zA-Z\\s-]*)\\s*:\\s*(\\d+)", normalized)
+    if key_value_pairs:
+        for raw_key, raw_count in key_value_pairs:
+            key = raw_key.strip().lower()
+            if not key:
+                continue
+            requirements[key] = requirements.get(key, 0) + int(raw_count)
+        return requirements
+
+    pairs = re.findall(r"(\\d+)\\s*\\(([^)]+)\\)", normalized)
+    for count, cls in pairs:
+        key = cls.strip().lower()
+        if not key:
+            continue
+        requirements[key] = requirements.get(key, 0) + int(count)
+    return requirements
 
 
 def collect_party_class_counts(engine: Engine, player: PlayerState) -> Dict[str, int]:
@@ -73,7 +95,7 @@ def can_player_attack_monster(player: PlayerState, engine: Engine, monster_id: i
         return True
     total_heroes = len(player.party) + (1 if player.party_leader is not None else 0)
     class_counts = collect_party_class_counts(engine, player)
-    for count, req_class in requirements:
+    for req_class, count in requirements.items():
         if req_class == "any":
             if total_heroes < count:
                 return False
