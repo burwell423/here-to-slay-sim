@@ -183,6 +183,15 @@ class Policy:
         ranked = sorted(candidates, key=lambda p: (-len(p.hand), p.pid))
         return ranked[0].pid
 
+    def choose_reveal_opponent(self, candidates: List["PlayerState"]) -> Optional[int]:
+        if not candidates:
+            return None
+        ranked = sorted(candidates, key=lambda p: (-len(p.hand), p.pid))
+        return ranked[0].pid
+
+    def choose_reveal_card(self, opp_hand: List[int], engine: "Engine") -> Optional[int]:
+        return self.choose_steal_card(opp_hand, engine)
+
     def should_challenge(self, rng: random.Random) -> bool:
         return rng.random() < self.challenge.challenge_probability
 
