@@ -165,7 +165,7 @@
       "requires_roll": null,
       "roll_condition": null,
       "condition": null,
-      "notes": null
+      "notes": "Each time you roll, +1 to your roll"
     },
     {
       "name": "Warworn Owlbear",
@@ -210,7 +210,7 @@
       "requires_roll": null,
       "roll_condition": null,
       "condition": "challenge_target.type==item",
-      "notes": null
+      "notes": "Item cards you play cannot be challenged"
     },
     {
       "name": "Orthus",
@@ -255,7 +255,7 @@
       "requires_roll": null,
       "roll_condition": null,
       "condition": "drawn_card.type==magic",
-      "notes": null
+      "notes": "Each time you draw a Magic Card, you may play it immediately"
     },
     {
       "name": "Rex Major",
@@ -300,7 +300,7 @@
       "requires_roll": null,
       "roll_condition": null,
       "condition": "drawn_card.type==modifier",
-      "notes": null
+      "notes": "Each time you draw a Modifier Card, you may reveal it and draw a second card"
     },
     {
       "name": "Rex Major",
@@ -360,7 +360,7 @@
       "requires_roll": null,
       "roll_condition": null,
       "condition": "drawn_card.type==item",
-      "notes": null
+      "notes": "Each time you draw an Item Card, you may play it immediately"
     },
     {
       "name": "Titan Wyvern",
@@ -405,7 +405,7 @@
       "requires_roll": null,
       "roll_condition": null,
       "condition": null,
-      "notes": null
+      "notes": "Each time you roll for a Challenge card, +1 to your roll"
     },
     {
       "name": "Dark Dragon King",
@@ -450,7 +450,7 @@
       "requires_roll": null,
       "roll_condition": null,
       "condition": null,
-      "notes": null
+      "notes": "Each time you roll for a Hero card's effect, +1 to your roll"
     },
     {
       "name": "Dracos",
@@ -495,7 +495,7 @@
       "requires_roll": null,
       "roll_condition": null,
       "condition": "hero.owner==player",
-      "notes": null
+      "notes": "Each time a Hero card in your party is destroyed, you may draw a card"
     },
     {
       "name": "Bloodwing",
@@ -540,7 +540,7 @@
       "requires_roll": null,
       "roll_condition": null,
       "condition": "challenge.target==player",
-      "notes": null
+      "notes": "Each time another player challenges you, that player must discard a card"
     },
     {
       "name": "Mega Slime",
@@ -585,7 +585,7 @@
       "requires_roll": null,
       "roll_condition": null,
       "condition": null,
-      "notes": null
+      "notes": "You may spend an extra action point on each of your turns"
     },
     {
       "name": "Abyss Queen",
@@ -630,7 +630,7 @@
       "requires_roll": null,
       "roll_condition": null,
       "condition": "roll_player==player",
-      "notes": null
+      "notes": "Each time another player plays a Modifier card on one of your rolls, +1 to your roll"
     },
     {
       "name": "Arctic Aries",
@@ -675,7 +675,7 @@
       "requires_roll": null,
       "roll_condition": null,
       "condition": "roll_player==player",
-      "notes": null
+      "notes": "Each time you successfully roll to use a Hero Card's effect, you may draw a card"
     },
     {
       "name": "Corrupted Sabretooth",
@@ -720,7 +720,7 @@
       "requires_roll": null,
       "roll_condition": null,
       "condition": "hero_destroyed.source",
-      "notes": null
+      "notes": "Each time you would destroy a Hero card, you may steal that Hero card instead"
     },
     {
       "name": "Crowned Serpent",
@@ -765,7 +765,7 @@
       "requires_roll": null,
       "roll_condition": null,
       "condition": null,
-      "notes": null
+      "notes": "Each time any player (including you) plays a Modifier card, you may draw a card"
     },
     {
       "name": "Terratuga",
@@ -810,7 +810,7 @@
       "requires_roll": null,
       "roll_condition": null,
       "condition": "hero_destroyed.target==player",
-      "notes": null
+      "notes": "Your Hero cards cannot be destroyed"
     }
   ]
 }
