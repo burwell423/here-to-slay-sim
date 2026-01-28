@@ -22,21 +22,6 @@ def maybe_challenge_play(
     if not is_challengeable_card_type(played_type):
         return False
 
-    ctx = {
-        "challenge_target": engine.card_meta.get(played_card_id, {"id": played_card_id, "type": "unknown"}),
-        "challenge.denied": False,
-    }
-
-    for pstate in state.players:
-        for mid in pstate.captured_monsters:
-            for step in engine.monster_effects.get(mid, []):
-                if "on_challenge" in step.triggers():
-                    resolve_effect(step, state, engine, pstate.pid, ctx, rng, policy, log)
-
-    if ctx.get("challenge.denied"):
-        log.append("[Challenge] DENIED by effect")
-        return False
-
     challenge_pick = policy.choose_challenger(state, engine, pid_playing)
     if challenge_pick is None:
         return False
@@ -44,6 +29,22 @@ def maybe_challenge_play(
     challenger_pid, challenge_card_id = challenge_pick
 
     if not policy.should_challenge(rng):
+        return False
+
+    ctx = {
+        "challenge_target": engine.card_meta.get(played_card_id, {"id": played_card_id, "type": "unknown"}),
+        "challenge.denied": False,
+        "challenge": {"target_pid": pid_playing, "challenger_pid": challenger_pid},
+    }
+
+    for pstate in state.players:
+        for mid in pstate.captured_monsters:
+            for step in engine.monster_effects.get(mid, []):
+                if "on_challenge" in step.triggers() and (step.effect_kind or "").strip() in ("deny", "deny_challenge"):
+                    resolve_effect(step, state, engine, pstate.pid, ctx, rng, policy, log)
+
+    if ctx.get("challenge.denied"):
+        log.append("[Challenge] DENIED by effect")
         return False
 
     challenger = state.players[challenger_pid]
@@ -57,6 +58,12 @@ def maybe_challenge_play(
         f"by P{pid_playing}"
     )
 
+    for pstate in state.players:
+        for mid in pstate.captured_monsters:
+            for step in engine.monster_effects.get(mid, []):
+                if "on_challenge" in step.triggers() and (step.effect_kind or "").strip() not in ("deny", "deny_challenge"):
+                    resolve_effect(step, state, engine, pstate.pid, ctx, rng, policy, log)
+
     r_challenger = resolve_roll_event(
         state=state,
         engine=engine,
@@ -64,6 +71,7 @@ def maybe_challenge_play(
         roll_reason="challenge:challenger",
         rng=rng,
         log=log,
+        policy=policy,
         mode="maximize",
     )
     r_playing = resolve_roll_event(
@@ -73,6 +81,7 @@ def maybe_challenge_play(
         roll_reason="challenge:played",
         rng=rng,
         log=log,
+        policy=policy,
         mode="maximize",
     )
 
