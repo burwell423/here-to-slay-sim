@@ -333,6 +333,36 @@ def _handle_deny_challenge(
     log.append(f"[P{pid}] deny_challenge triggered ({step.name})")
 
 
+def _handle_trade_hands(
+    step: EffectStep,
+    state: GameState,
+    engine: Engine,
+    pid: int,
+    ctx: Dict[str, Any],
+    rng: "random.Random",
+    policy: Policy,
+    log: List[str],
+):
+    target_pid = ctx.get("target_pid")
+    if target_pid is None:
+        target_pid = policy.choose_trade_partner(state, pid)
+    if target_pid is None:
+        ctx.setdefault("_warnings", []).append("trade_hands: no opponent available")
+        return
+    if target_pid == pid:
+        ctx.setdefault("_warnings", []).append("trade_hands: target is self")
+        return
+    player_hand = state.players[pid].hand
+    target_hand = state.players[target_pid].hand
+    state.players[pid].hand = list(target_hand)
+    state.players[target_pid].hand = list(player_hand)
+    log.append(
+        f"[P{pid}] trade_hands with P{target_pid} "
+        f"({len(player_hand)} cards -> {len(state.players[pid].hand)}, "
+        f"{len(target_hand)} cards -> {len(state.players[target_pid].hand)})"
+    )
+
+
 def _handle_search_and_draw(
     step: EffectStep,
     state: GameState,
@@ -832,6 +862,7 @@ EFFECT_HANDLERS = {
     "play_immediately": _handle_play_immediately,
     "play_drawn_immediately": _handle_play_drawn_immediately,
     "deny_challenge": _handle_deny_challenge,
+    "trade_hands": _handle_trade_hands,
     "search_and_draw": _handle_search_and_draw,
     "destroy_hero": _handle_destroy_hero,
     "sacrifice_hero": _handle_sacrifice_hero,
