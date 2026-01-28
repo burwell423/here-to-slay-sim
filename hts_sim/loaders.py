@@ -86,13 +86,16 @@ def load_monsters(monsters_json: str = MONSTERS_JSON) -> Tuple[Dict[int, Monster
 
     for r in payload.get("attack_rules", []):
         mid = int(r["monster_id"])
+        raw_attack_requirements = str(r.get("attack_requirements") or "").strip()
+        if raw_attack_requirements.lower() == "nan":
+            raw_attack_requirements = ""
         attack_rule[mid] = MonsterRule(
             monster_id=mid,
             success_condition=None if str(r.get("success_condition") or "").strip() in ("", "nan") else str(r.get("success_condition")).strip(),
             fail_condition=None if str(r.get("fail_condition") or "").strip() in ("", "nan") else str(r.get("fail_condition")).strip(),
             success_action=None if str(r.get("success_action") or "").strip() in ("", "nan") else str(r.get("success_action")).strip(),
             fail_action=None if str(r.get("fail_action") or "").strip() in ("", "nan") else str(r.get("fail_action")).strip(),
-            attack_requirements=attack_requirements.get(mid),
+            attack_requirements=raw_attack_requirements or attack_requirements.get(mid),
         )
 
     for r in payload.get("effects", []):
