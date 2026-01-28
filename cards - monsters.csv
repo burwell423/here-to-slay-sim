@@ -2,61 +2,61 @@ name,card_id,step,location,trigger,condition,attack_requirements,effect_kind,sou
 Anuran Cauldron,80,1,monster_row,on_attacked,,3 (any),,,,,,,>=7,claim_monster,<=6,sacrifice_hero,,
 Anuran Cauldron,80,1,monster_row,on_attack_resolve,attack.success,,move_card,monster_row,player.captured_monsters,,,,,,,,,
 Anuran Cauldron,80,1,monster_row,on_attack_resolve,attack.fail,,move_card,player.party,discard_pile,,,,,,,,,
-Anuran Cauldron,80,1,player.captured_monsters,player.on_roll,,,modify_roll,,,,1,,,,,,,
+Anuran Cauldron,80,1,player.captured_monsters,player.on_roll,,,modify_roll,,,,1,,,,,,,"Each time you roll, +1 to your roll"
 Warworn Owlbear,81,1,monster_row,on_attacked,,1 (any) 1 (thief),,,,,,,>=7,claim_monster,<=4,discard,,
 Warworn Owlbear,81,1,monster_row,on_attack_resolve,attack.success,,move_card,monster_row,player.captured_monsters,,,,,,,,,
 Warworn Owlbear,81,1,monster_row,on_attack_resolve,attack.fail,,discard_card,player.hand,discard_pile,,2,,,,,,,
-Warworn Owlbear,81,1,player.captured_monsters,on_challenge,challenge_target.type==item,,deny_challenge,,,,,,,,,,,
+Warworn Owlbear,81,1,player.captured_monsters,on_challenge,challenge_target.type==item,,deny_challenge,,,,,,,,,,,Item cards you play cannot be challenged
 Orthus,82,1,monster_row,on_attacked,,1 (any) 1 (wizard),,,,,,,>=7,claim_monster,<=4,discard,,
 Orthus,82,1,monster_row,on_attack_resolve,attack.success,,move_card,monster_row,player.captured_monsters,,,,,,,,,
 Orthus,82,1,monster_row,on_attack_resolve,attack.fail,,discard_card,player.hand,discard_pile,,2,,,,,,,
-Orthus,82,1,player.captured_monsters,on_draw,drawn_card.type==magic,,play_immediately,drawn_card,player.action_area,,,,,,,,,
+Orthus,82,1,player.captured_monsters,on_draw,drawn_card.type==magic,,play_immediately,drawn_card,player.action_area,,,,,,,,,"Each time you draw a Magic Card, you may play it immediately"
 Rex Major,83,1,monster_row,on_attacked,,1 (any) 1 (guardian),,,,,,,>=7,claim_monster,<=4,discard,,
 Rex Major,83,1,monster_row,on_attack_resolve,attack.success,,move_card,monster_row,player.captured_monsters,,,,,,,,,
 Rex Major,83,1,monster_row,on_attack_resolve,attack.fail,,discard_card,player.hand,discard_pile,,2,,,,,,,
-Rex Major,83,1,player.captured_monsters,on_draw,drawn_card.type==modifier,,reveal_card,drawn_card,all_opponents,,,,,,,,,
+Rex Major,83,1,player.captured_monsters,on_draw,drawn_card.type==modifier,,reveal_card,drawn_card,all_opponents,,,,,,,,,"Each time you draw a Modifier Card, you may reveal it and draw a second card"
 Rex Major,83,2,player.captured_monsters,auto,,,draw_card,draw_pile,player.hand,,1,,,,,,,
 Malamammoth,84,1,monster_row,on_attacked,,1 (any) 1 (hunter),,,,,,,>=7,claim_monster,<=4,discard,,
 Malamammoth,84,2,monster_row,on_attack_resolve,attack.success,,move_card,monster_row,player.captured_monsters,,,,,,,,,
 Malamammoth,84,3,monster_row,on_attack_resolve,attack.fail,,discard_card,player.hand,discard_pile,,2,,,,,,,
-Malamammoth,84,4,player.captured_monsters,on_draw,drawn_card.type==item,play_drawn_immediately,,,,,
+Malamammoth,84,4,player.captured_monsters,on_draw,drawn_card.type==item,play_drawn_immediately,,,,,,,,,,,,"Each time you draw an Item Card, you may play it immediately"
 Titan Wyvern,85,1,monster_row,on_attacked,,1 (any) 1 (fighter),,,,,,,>=7,claim_monster,<=4,discard,,
 Titan Wyvern,85,1,monster_row,on_attack_resolve,attack.success,,move_card,monster_row,player.captured_monsters,,,,,,,,,
 Titan Wyvern,85,1,monster_row,on_attack_resolve,attack.fail,,discard_card,player.hand,discard_pile,,2,,,,,,,
-Titan Wyvern,85,1,player.captured_monsters,on_challenge,,,modify_roll,,,,1,,,,,,,
+Titan Wyvern,85,1,player.captured_monsters,on_challenge,,,modify_roll,,,,1,,,,,,,"Each time you roll for a Challenge card, +1 to your roll"
 Dark Dragon King,86,1,monster_row,on_attacked,,1 (any) 1 (bard),,,,,,,>=7,claim_monster,<=4,discard,,
 Dark Dragon King,86,1,monster_row,on_attack_resolve,attack.success,,move_card,monster_row,player.captured_monsters,,,,,,,,,
 Dark Dragon King,86,1,monster_row,on_attack_resolve,attack.fail,,discard_card,player.hand,discard_pile,,2,,,,,,,
-Dark Dragon King,86,1,player.captured_monsters,on_hero_roll,,,modify_roll,,,,1,,,,,,,
+Dark Dragon King,86,1,player.captured_monsters,on_hero_roll,,,modify_roll,,,,1,,,,,,,"Each time you roll for a Hero card's effect, +1 to your roll"
 Dracos,87,1,monster_row,on_attacked,,1 (any),,,,,,,<=5,claim_monster,>=8,sacrifice_hero,,
 Dracos,87,1,monster_row,on_attack_resolve,attack.success,,move_card,monster_row,player.captured_monsters,,,,,,,,,
 Dracos,87,1,monster_row,on_attack_resolve,attack.fail,,sacrifice_hero,player.party,discard_pile,,1,,,,,,,
-Dracos,87,1,player.captured_monsters,on_hero_destroyed,hero.owner==player,,draw_card,draw_pile,player.hand,,1,,,,,,,
+Dracos,87,1,player.captured_monsters,on_hero_destroyed,hero.owner==player,,draw_card,draw_pile,player.hand,,1,,,,,,,"Each time a Hero card in your party is destroyed, you may draw a card"
 Bloodwing,88,1,monster_row,on_attacked,,2 (any),,,,,,,>=9,claim_monster,<=6,sacrifice_hero,,
 Bloodwing,88,1,monster_row,on_attack_resolve,attack.success,,move_card,monster_row,player.captured_monsters,,,,,,,,,
 Bloodwing,88,1,monster_row,on_attack_resolve,attack.fail,,sacrifice_hero,player.party,discard_pile,,1,,,,,,,
-Bloodwing,88,1,player.captured_monsters,on_challenge,challenge.target==player,,discard_card,challenge.source,discard_pile,,1,,,,,,,
+Bloodwing,88,1,player.captured_monsters,on_challenge,challenge.target==player,,discard_card,challenge.source,discard_pile,,1,,,,,,,"Each time another player challenges you, that player must discard a card"
 Mega Slime,89,1,monster_row,on_attacked,,4 (any),,,,,,,>=8,claim_monster,<=7,sacrifice_hero,,
 Mega Slime,89,1,monster_row,on_attack_resolve,attack.success,,move_card,monster_row,player.captured_monsters,,,,,,,,,
 Mega Slime,89,1,monster_row,on_attack_resolve,attack.fail,,sacrifice_hero,player.party,discard_pile,,1,,,,,,,
-Mega Slime,89,1,player.captured_monsters,passive,,,modify_action_total,player.actions_per_turn,,,1,,,,,,,
+Mega Slime,89,1,player.captured_monsters,passive,,,modify_action_total,player.actions_per_turn,,,1,,,,,,,You may spend an extra action point on each of your turns
 Abyss Queen,90,1,monster_row,on_attacked,,2 (any),,,,,,,>=8,claim_monster,<=5,sacrifice_hero,,
 Abyss Queen,90,1,monster_row,on_attack_resolve,attack.success,,move_card,monster_row,player.captured_monsters,,,,,,,,,
 Abyss Queen,90,1,monster_row,on_attack_resolve,attack.fail,,sacrifice_hero,player.party,discard_pile,,1,,,,,,,
-Abyss Queen,90,1,player.captured_monsters,on_modifier_played,roll_player==player,,modify_roll,,,,1,,,,,,,
+Abyss Queen,90,1,player.captured_monsters,on_modifier_played,roll_player==player,,modify_roll,,,,1,,,,,,,"Each time another player plays a Modifier card on one of your rolls, +1 to your roll"
 Arctic Aries,91,1,monster_row,on_attacked,,1 (any),,,,,,,>=8,claim_monster,<=5,sacrifice_hero,,
 Arctic Aries,91,1,monster_row,on_attack_resolve,attack.success,,move_card,monster_row,player.captured_monsters,,,,,,,,,
 Arctic Aries,91,1,monster_row,on_attack_resolve,attack.fail,,sacrifice_hero,player.party,discard_pile,,1,,,,,,,
-Arctic Aries,91,1,player.captured_monsters,on_modifier_played,roll_player==player,,modify_roll,,,,1,,,,,,,
+Arctic Aries,91,1,player.captured_monsters,on_modifier_played,roll_player==player,,modify_roll,,,,1,,,,,,,"Each time you successfully roll to use a Hero Card's effect, you may draw a card"
 Corrupted Sabretooth,92,1,monster_row,on_attacked,,3 (any),,,,,,,>=9,claim_monster,<=6,discard_card,,
 Corrupted Sabretooth,92,1,monster_row,on_attack_resolve,attack.success,,move_card,monster_row,player.captured_monsters,,,,,,,,,
 Corrupted Sabretooth,92,1,monster_row,on_attack_resolve,attack.fail,,discard_card,player.hand,discard_pile,,2,,,,,,,
-Corrupted Sabretooth,92,1,player.captured_monsters,on_hero_destroyed,hero_destroyed.source,,steal_hero,destroyed_hero,player.hand,,1,,,,,,,
+Corrupted Sabretooth,92,1,player.captured_monsters,on_hero_destroyed,hero_destroyed.source,,steal_hero,destroyed_hero,player.hand,,1,,,,,,,"Each time you would destroy a Hero card, you may steal that Hero card instead"
 Crowned Serpent,93,1,monster_row,on_attacked,,2 (any),,,,,,,>=10,claim_monster,<=7,sacrifice_hero,,
 Crowned Serpent,93,1,monster_row,on_attack_resolve,attack.success,,move_card,monster_row,player.captured_monsters,,,,,,,,,
 Crowned Serpent,93,1,monster_row,on_attack_resolve,attack.fail,,sacrifice_hero,player.hand,discard_pile,,1,,,,,,,
-Crowned Serpent,93,1,player.captured_monsters,on_modifier_played,,,draw_card,draw_pile,player.hand,,1,,,,,,,
+Crowned Serpent,93,1,player.captured_monsters,on_modifier_played,,,draw_card,draw_pile,player.hand,,1,,,,,,,"Each time any player (including you) plays a Modifier card, you may draw a card"
 Terratuga,94,1,monster_row,on_attacked,,1 (any),,,,,,,>=11,claim_monster,<=7,sacrifice_hero,,
 Terratuga,94,1,monster_row,on_attack_resolve,attack.success,,move_card,monster_row,player.captured_monsters,,,,,,,,,
 Terratuga,94,1,monster_row,on_attack_resolve,attack.fail,,sacrifice_hero,player.hand,discard_pile,,1,,,,,,,
-Terratuga,94,1,player.captured_monsters,on_hero_destroyed,hero_destroyed.target==player,,deny,,,,,,,,,,,
+Terratuga,94,1,player.captured_monsters,on_hero_destroyed,hero_destroyed.target==player,,deny,,,,,,,,,,,Your Hero cards cannot be destroyed
