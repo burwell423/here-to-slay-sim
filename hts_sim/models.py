@@ -101,6 +101,23 @@ class Policy:
         ranked = sorted(opp_hand, key=lambda cid: (-self.score_card_value(cid, engine), cid))
         return ranked[0]
 
+    def choose_steal_hero(
+        self,
+        opp_party: List[int],
+        engine: "Engine",
+        opp_hero_items: Dict[int, List[int]],
+    ) -> Optional[int]:
+        if not opp_party:
+            return None
+        ranked = sorted(
+            opp_party,
+            key=lambda hid: (
+                -(self.score_card_value(hid, engine) + len(opp_hero_items.get(hid, [])) * 5),
+                hid,
+            ),
+        )
+        return ranked[0]
+
     def choose_move_card(self, source: List[int], dest_zone: str, engine: "Engine") -> Optional[int]:
         if not source:
             return None
