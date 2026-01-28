@@ -850,6 +850,57 @@ def _handle_return_to_hand(
     resolve_for_pid(pid)
 
 
+def _handle_use_hero(
+    step: EffectStep,
+    state: GameState,
+    engine: Engine,
+    pid: int,
+    ctx: Dict[str, Any],
+    rng: "random.Random",
+    policy: Policy,
+    log: List[str],
+):
+    target_pid = _resolve_party_pid(state, pid, step.source_zone) or pid
+    party = state.players[target_pid].party
+    if not party:
+        return
+
+    hero_id: Optional[int] = None
+    if step.filter_expr:
+        filt = str(step.filter_expr).strip().lower()
+        if filt == "hero==stolen_now":
+            stolen = ctx.get("stolen_hero")
+            if isinstance(stolen, dict):
+                hero_id = stolen.get("id")
+            elif isinstance(stolen, int):
+                hero_id = stolen
+        elif filt == "hero==active":
+            hero_id = ctx.get("activated_hero_id")
+
+    if hero_id is None:
+        hero_id = policy.choose_steal_hero(party, engine, state.players[target_pid].hero_items)
+
+    if hero_id is None or hero_id not in party:
+        ctx.setdefault("_warnings", []).append("use_hero: missing target hero in party")
+        return
+
+    log.append(
+        f"[P{pid}] use_hero -> {hero_id} "
+        f"({engine.card_meta.get(hero_id,{}).get('name','?')})"
+    )
+
+    local_ctx = dict(ctx)
+    local_ctx["activated_hero_id"] = hero_id
+    local_ctx["used_hero_id"] = hero_id
+    for hero_step in engine.effects_by_card.get(hero_id, []):
+        trig = hero_step.triggers()
+        if "on_activation" in trig or "auto" in trig:
+            resolve_effect(hero_step, state, engine, pid, local_ctx, rng, policy, log)
+
+    for w in local_ctx.get("_warnings", []):
+        ctx.setdefault("_warnings", []).append(w)
+
+
 EFFECT_HANDLERS = {
     "draw_card": _handle_draw,
     "draw_cards": _handle_draw,
@@ -877,6 +928,7 @@ EFFECT_HANDLERS = {
     "modify_roll": _handle_modify_roll,
     "modify_hero_class": _handle_modify_hero_class,
     "return_to_hand": _handle_return_to_hand,
+    "use_hero": _handle_use_hero,
 }
 
 SUPPORTED_EFFECT_KINDS = set(EFFECT_HANDLERS.keys())
