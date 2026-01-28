@@ -13,7 +13,7 @@
     },
     {
       "attack_requirements": {
-        "any": 1,
+        "any": 2,
         "thief": 1
       },
       "fail_action": "discard",
@@ -25,7 +25,7 @@
     },
     {
       "attack_requirements": {
-        "any": 1,
+        "any": 2,
         "wizard": 1
       },
       "fail_action": "discard",
@@ -37,7 +37,7 @@
     },
     {
       "attack_requirements": {
-        "any": 1,
+        "any": 2,
         "guardian": 1
       },
       "fail_action": "discard",
@@ -49,7 +49,7 @@
     },
     {
       "attack_requirements": {
-        "any": 1,
+        "any": 2,
         "hunter": 1
       },
       "fail_action": "discard",
@@ -61,7 +61,7 @@
     },
     {
       "attack_requirements": {
-        "any": 1,
+        "any": 2,
         "fighter": 1
       },
       "fail_action": "discard",
@@ -73,7 +73,7 @@
     },
     {
       "attack_requirements": {
-        "any": 1,
+        "any": 2,
         "bard": 1
       },
       "fail_action": "discard",
