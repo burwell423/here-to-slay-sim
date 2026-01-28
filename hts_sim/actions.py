@@ -180,6 +180,10 @@ def action_attack_monster(
     )
 
     op, target = parse_simple_condition(rule.success_condition)
+    fail_op = None
+    fail_target = None
+    if rule.fail_condition:
+        fail_op, fail_target = parse_simple_condition(rule.fail_condition)
     final = resolve_roll_event(
         state=state,
         engine=engine,
@@ -191,7 +195,16 @@ def action_attack_monster(
         mode="threshold",
     )
     success = goal_satisfied(final, op, target)
-    outcome = "SUCCESS" if success else "FAIL"
+    if fail_op and fail_target is not None:
+        fail = goal_satisfied(final, fail_op, fail_target)
+    else:
+        fail = not success
+    if success:
+        outcome = "SUCCESS"
+    elif fail:
+        outcome = "FAIL"
+    else:
+        outcome = "NO_EFFECT"
     log.append(
         f"[P{pid}] monster attack roll 2d6={final} -> {outcome} "
         f"(success:{rule.success_condition} fail:{rule.fail_condition})"
@@ -200,7 +213,8 @@ def action_attack_monster(
     ctx = {
         "attack_roll": final,
         "attack.success": success,
-        "attack.fail": not success,
+        "attack.fail": fail,
+        "attack.no_effect": not success and not fail,
         "target_monster_id": monster_id,
     }
 
