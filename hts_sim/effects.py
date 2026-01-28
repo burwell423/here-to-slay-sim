@@ -516,6 +516,166 @@ def _handle_modify_hero_class(
     )
 
 
+def _filter_matches_card(engine: Engine, card_id: int, filter_expr: Optional[str]) -> bool:
+    if not filter_expr:
+        return True
+    expr = str(filter_expr).strip().lower()
+    meta = engine.card_meta.get(card_id, {})
+    ctype = str(meta.get("type", "")).lower()
+    subtype = str(meta.get("subtype", "")).lower()
+    if expr.startswith("type=="):
+        want = expr.split("==", 1)[1].strip()
+        return ctype == want
+    if expr.startswith("item.type=="):
+        want = expr.split("==", 1)[1].strip()
+        return ctype == "item" and subtype == want
+    return True
+
+
+def _remove_item_overrides(player, item_id: int) -> None:
+    to_clear = []
+    for hero_id, overrides in player.hero_class_overrides.items():
+        filtered = [entry for entry in overrides if entry[0] != item_id]
+        if filtered:
+            player.hero_class_overrides[hero_id] = filtered
+        else:
+            to_clear.append(hero_id)
+    for hero_id in to_clear:
+        player.hero_class_overrides.pop(hero_id, None)
+
+
+def _collect_return_candidates(
+    state: GameState,
+    engine: Engine,
+    target_pid: int,
+    filter_expr: Optional[str],
+) -> List[Dict[str, Any]]:
+    p = state.players[target_pid]
+    candidates: List[Dict[str, Any]] = []
+    for hero_id in p.party:
+        if _filter_matches_card(engine, hero_id, filter_expr):
+            candidates.append({"card_id": hero_id, "kind": "hero", "hero_id": hero_id})
+        for item_id in p.hero_items.get(hero_id, []):
+            if _filter_matches_card(engine, item_id, filter_expr):
+                candidates.append({"card_id": item_id, "kind": "item", "hero_id": hero_id})
+    return candidates
+
+
+def _choose_target_pid_for_return(
+    state: GameState,
+    engine: Engine,
+    pid: int,
+    filter_expr: Optional[str],
+    prefer_opponents: bool,
+) -> Optional[int]:
+    candidate_pids = [p.pid for p in state.players if _collect_return_candidates(state, engine, p.pid, filter_expr)]
+    if not candidate_pids:
+        return None
+    if prefer_opponents:
+        opponents = [opid for opid in candidate_pids if opid != pid]
+        if opponents:
+            return max(opponents, key=lambda opid: (len(state.players[opid].party), -opid))
+    return max(candidate_pids, key=lambda opid: (len(state.players[opid].party), -opid))
+
+
+def _move_return_candidate_to_hand(
+    state: GameState,
+    engine: Engine,
+    target_pid: int,
+    candidate: Dict[str, Any],
+    log: List[str],
+) -> None:
+    p = state.players[target_pid]
+    card_id = int(candidate["card_id"])
+    if candidate["kind"] == "item":
+        hero_id = int(candidate["hero_id"])
+        items = p.hero_items.get(hero_id, [])
+        if card_id in items:
+            items.remove(card_id)
+        _remove_item_overrides(p, card_id)
+        p.hand.append(card_id)
+        log.append(
+            f"[P{target_pid}] return_to_hand item {card_id}:{engine.card_meta.get(card_id,{}).get('name','?')} "
+            f"from hero {hero_id}"
+        )
+        return
+
+    hero_id = int(candidate["hero_id"])
+    if hero_id not in p.party:
+        return
+    p.party.remove(hero_id)
+    p.hand.append(hero_id)
+    items = list(p.hero_items.get(hero_id, []))
+    if items:
+        for item_id in items:
+            p.hand.append(item_id)
+            _remove_item_overrides(p, item_id)
+        p.hero_items[hero_id] = []
+        log.append(
+            f"[P{target_pid}] return_to_hand hero {hero_id}:{engine.card_meta.get(hero_id,{}).get('name','?')} "
+            f"with items {format_card_list(items, engine.card_meta)}"
+        )
+    else:
+        log.append(
+            f"[P{target_pid}] return_to_hand hero {hero_id}:{engine.card_meta.get(hero_id,{}).get('name','?')}"
+        )
+    p.hero_class_overrides.pop(hero_id, None)
+
+
+def _handle_return_to_hand(
+    step: EffectStep,
+    state: GameState,
+    engine: Engine,
+    pid: int,
+    ctx: Dict[str, Any],
+    rng: "random.Random",
+    policy: Policy,
+    log: List[str],
+):
+    src = (step.source_zone or "").strip().lower()
+    dst = (step.dest_zone or "").strip().lower()
+    amount = step.amount
+
+    def resolve_for_pid(target_pid: int) -> None:
+        candidates = _collect_return_candidates(state, engine, target_pid, step.filter_expr)
+        if not candidates:
+            return
+        if amount is None:
+            for cand in list(candidates):
+                _move_return_candidate_to_hand(state, engine, target_pid, cand, log)
+            return
+        for _ in range(min(amount, len(candidates))):
+            choice = policy.choose_move_card([c["card_id"] for c in candidates], "player.hand", engine)
+            if choice is None:
+                return
+            selected = next((c for c in candidates if c["card_id"] == choice), None)
+            if selected is None:
+                return
+            candidates.remove(selected)
+            _move_return_candidate_to_hand(state, engine, target_pid, selected, log)
+
+    if src.startswith("all_players."):
+        for target in state.players:
+            resolve_for_pid(target.pid)
+        return
+
+    if src.startswith("any_player."):
+        target_pid = ctx.get("target_pid")
+        if target_pid is None:
+            target_pid = _choose_target_pid_for_return(state, engine, pid, step.filter_expr, prefer_opponents=True)
+        if target_pid is None:
+            ctx.setdefault("_warnings", []).append("return_to_hand: no valid target for any_player")
+            return
+        resolve_for_pid(target_pid)
+        return
+
+    if dst.endswith(".hand") and "target_pid" in ctx:
+        resolve_for_pid(int(ctx["target_pid"]))
+        return
+
+    resolve_for_pid(pid)
+
+
 EFFECT_HANDLERS = {
     "draw_card": _handle_draw,
     "draw_cards": _handle_draw,
@@ -539,6 +699,7 @@ EFFECT_HANDLERS = {
     "modify_action_total": _handle_modify_action_total,
     "modify_roll": _handle_modify_roll,
     "modify_hero_class": _handle_modify_hero_class,
+    "return_to_hand": _handle_return_to_hand,
 }
 
 SUPPORTED_EFFECT_KINDS = set(EFFECT_HANDLERS.keys())
