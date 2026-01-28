@@ -582,6 +582,59 @@ def _handle_look_at_hand(
     )
 
 
+def _handle_reveal_card(
+    step: EffectStep,
+    state: GameState,
+    engine: Engine,
+    pid: int,
+    ctx: Dict[str, Any],
+    rng: "random.Random",
+    policy: Policy,
+    log: List[str],
+):
+    source = (step.source_zone or "").strip().lower()
+    dest = (step.dest_zone or "").strip().lower()
+
+    if source == "drawn_card":
+        drawn = ctx.get("drawn_card")
+        if not drawn:
+            ctx.setdefault("_warnings", []).append("reveal_card: missing ctx.drawn_card")
+            return
+        card_name = drawn.get("name", "?")
+        card_id = drawn.get("id", "?")
+        if dest == "all_opponents":
+            opp_ids = [p.pid for p in state.players if p.pid != pid]
+            log.append(
+                f"[P{pid}] reveal_card shows drawn {card_id}:{card_name} to opponents {opp_ids}"
+            )
+        else:
+            log.append(f"[P{pid}] reveal_card sees drawn {card_id}:{card_name}")
+        return
+
+    target_pid = ctx.get("target_pid")
+    if target_pid is None:
+        candidates = [p for p in state.players if p.pid != pid and p.hand]
+        if not candidates:
+            ctx.setdefault("_warnings", []).append("reveal_card: no opponents with cards in hand")
+            return
+        target_pid = policy.choose_reveal_opponent(candidates)
+        if target_pid is None:
+            ctx.setdefault("_warnings", []).append("reveal_card: no opponent selected")
+            return
+
+    hand = state.players[target_pid].hand
+    if not hand:
+        ctx.setdefault("_warnings", []).append("reveal_card: target has no cards in hand")
+        return
+    revealed = policy.choose_reveal_card(hand, engine)
+    if revealed is None:
+        ctx.setdefault("_warnings", []).append("reveal_card: no card selected")
+        return
+    log.append(
+        f"[P{pid}] reveal_card sees P{target_pid} card {revealed}:{engine.card_meta.get(revealed,{}).get('name','?')}"
+    )
+
+
 def _handle_modify_action_total(
     step: EffectStep,
     state: GameState,
@@ -924,6 +977,7 @@ EFFECT_HANDLERS = {
     "protection_from_challenge": _handle_protection_from_challenge,
     "destroy_item": _handle_destroy_item,
     "look_at_hand": _handle_look_at_hand,
+    "reveal_card": _handle_reveal_card,
     "modify_action_total": _handle_modify_action_total,
     "modify_roll": _handle_modify_roll,
     "modify_hero_class": _handle_modify_hero_class,
