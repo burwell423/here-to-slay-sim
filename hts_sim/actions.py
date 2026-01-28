@@ -93,6 +93,12 @@ def play_card_from_hand(
     else:
         state.discard_pile.append(card_id)
 
+    activated_hero_id: Optional[int] = None
+    if ctype == "hero":
+        activated_hero_id = card_id
+    elif attached_hero is not None and attached_hero in p.party:
+        activated_hero_id = attached_hero
+
     ctx: Dict[str, Any] = {
         "played_card_id": card_id,
         "played_card_type": ctype,
@@ -105,6 +111,8 @@ def play_card_from_hand(
     for step in engine.effects_by_card.get(card_id, []):
         trig = step.triggers()
         if "on_play" in trig or "auto" in trig or "on_activation" in trig:
+            if "on_activation" in trig and activated_hero_id is not None:
+                p.activated_heroes_this_turn.add(activated_hero_id)
             resolve_effect(step, state, engine, pid, ctx, rng, policy, log)
 
     p.action_points -= cost
@@ -161,6 +169,8 @@ def action_activate_hero(
         return False
 
     for hero_id in p.party:
+        if hero_id in p.activated_heroes_this_turn:
+            continue
         steps = engine.effects_by_card.get(hero_id, [])
         if any("on_activation" in s.triggers() for s in steps):
             log.append(
@@ -174,6 +184,7 @@ def action_activate_hero(
                 if "on_activation" in step.triggers() or "auto" in step.triggers():
                     resolve_effect(step, state, engine, pid, ctx, rng, policy, log)
 
+            p.activated_heroes_this_turn.add(hero_id)
             for w in ctx.get("_warnings", []):
                 log.append(f"[P{pid}] WARN {w}")
             return True

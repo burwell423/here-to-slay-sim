@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 from collections import defaultdict
 
 from .utils import find_challenge_card_in_hand
@@ -42,6 +42,7 @@ class PlayerState:
     actions_per_turn: int = 3
     action_points: int = 3
     roll_modifiers: List[Tuple[int, int, Optional[int]]] = field(default_factory=list)
+    activated_heroes_this_turn: Set[int] = field(default_factory=set)
 
 
 @dataclass

@@ -67,6 +67,7 @@ def run_game(seed: int = 1, turns: int = 10, n_players: int = 4, policy: Optiona
         pid = t % len(state.players)
         state.active_pid = pid
         p = state.players[pid]
+        p.activated_heroes_this_turn.clear()
         p.actions_per_turn = 3
         for mid in p.captured_monsters:
             for step in engine.monster_effects.get(mid, []):
