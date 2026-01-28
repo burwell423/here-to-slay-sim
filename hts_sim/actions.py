@@ -46,21 +46,48 @@ def play_card_from_hand(
         log.append(f"[P{pid}] -> entered party: {card_id}:{meta.get('name','?')}")
 
     elif ctype == "item":
-        if not p.party:
-            state.discard_pile.append(card_id)
-            log.append(f"[P{pid}] WARN played item with no heroes; discarded {card_id}")
-        else:
-            target_hero = policy.choose_item_attach_target(p.party, engine, p.hero_items)
-            if target_hero is None:
+        subtype = str(meta.get("subtype", "")).strip().lower()
+        is_cursed = subtype == "cursed"
+        if is_cursed:
+            candidates: List[tuple[int, int]] = []
+            for opp in state.players:
+                if opp.pid == pid:
+                    continue
+                for hero_id in opp.party:
+                    if opp.hero_items.get(hero_id):
+                        continue
+                    candidates.append((opp.pid, hero_id))
+            if not candidates:
                 state.discard_pile.append(card_id)
-                log.append(f"[P{pid}] WARN played item with no valid hero; discarded {card_id}")
+                log.append(f"[P{pid}] WARN played cursed item with no valid opponent hero; discarded {card_id}")
             else:
-                p.hero_items[target_hero].append(card_id)
+                target_pid, target_hero = sorted(
+                    candidates,
+                    key=lambda pair: (-policy.score_card_value(pair[1], engine), pair[0], pair[1]),
+                )[0]
+                target_player = state.players[target_pid]
+                target_player.hero_items[target_hero].append(card_id)
                 attached_hero = target_hero
                 log.append(
-                    f"[P{pid}] -> attached item {card_id}:{meta.get('name','?')} "
-                    f"to hero {target_hero}:{engine.card_meta.get(target_hero, {}).get('name','?')}"
+                    f"[P{pid}] -> attached cursed item {card_id}:{meta.get('name','?')} "
+                    f"to P{target_pid} hero {target_hero}:{engine.card_meta.get(target_hero, {}).get('name','?')}"
                 )
+        else:
+            if not p.party:
+                state.discard_pile.append(card_id)
+                log.append(f"[P{pid}] WARN played item with no heroes; discarded {card_id}")
+            else:
+                target_hero = policy.choose_item_attach_target(p.party, engine, p.hero_items)
+                if target_hero is None:
+                    state.discard_pile.append(card_id)
+                    log.append(f"[P{pid}] WARN played item with no valid hero; discarded {card_id}")
+                else:
+                    p.hero_items[target_hero].append(card_id)
+                    attached_hero = target_hero
+                    log.append(
+                        f"[P{pid}] -> attached item {card_id}:{meta.get('name','?')} "
+                        f"to hero {target_hero}:{engine.card_meta.get(target_hero, {}).get('name','?')}"
+                    )
 
     else:
         state.discard_pile.append(card_id)

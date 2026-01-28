@@ -142,9 +142,12 @@ class Policy:
     ) -> Optional[int]:
         if not party:
             return None
+        available = [hid for hid in party if not hero_items.get(hid)]
+        if not available:
+            return None
         ranked = sorted(
-            party,
-            key=lambda hid: (-len(hero_items.get(hid, [])), hid),
+            available,
+            key=lambda hid: (-self.score_card_value(hid, engine), hid),
         )
         return ranked[0]
 
