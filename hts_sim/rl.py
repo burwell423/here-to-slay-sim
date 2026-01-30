@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import random
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -181,7 +182,7 @@ def train_policy(
                 )
 
                 features = _action_features(policy, action, state, engine, pid)
-                current_q = sum(policy.feature_weights.get(name, 0.0) * value for name, value in features.items())
+                current_q = policy.score_action(action, state, engine, pid)
                 action_taken = apply_action_candidate(action, state, engine, pid, rng, policy, [])
 
                 reward = _compute_reward_delta(
@@ -198,14 +199,22 @@ def train_policy(
                     reward += reward_config.win if winner_pid == pid else reward_config.loss
 
                 next_candidates = build_action_candidates(state, engine, pid) if not terminal else []
-                next_q = max(
-                    (policy.score_action(c, state, engine, pid) for c in next_candidates),
-                    default=0.0,
-                )
+                scored_next = []
+                for candidate in next_candidates:
+                    score = policy.score_action(candidate, state, engine, pid)
+                    if math.isfinite(score):
+                        scored_next.append(score)
+                next_q = max(scored_next, default=0.0)
                 td_target = reward + gamma * next_q
                 td_error = td_target - current_q
-                for name, value in features.items():
-                    policy.feature_weights[name] = policy.feature_weights.get(name, 0.0) + alpha * td_error * value
+                if math.isfinite(td_error):
+                    for name, value in features.items():
+                        if not math.isfinite(value):
+                            continue
+                        current_weight = policy.feature_weights.get(name, 0.0)
+                        if not math.isfinite(current_weight):
+                            current_weight = 0.0
+                        policy.feature_weights[name] = current_weight + alpha * td_error * value
 
                 transitions.append(
                     Transition(
