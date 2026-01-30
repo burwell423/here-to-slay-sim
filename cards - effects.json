@@ -14,7 +14,7 @@
     "roll_condition": ">=5",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "5+ Search discard for Magic Card and add it to your hand"
   },
   {
     "name": "Buttons",
@@ -31,7 +31,7 @@
     "roll_condition": ">=6",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "6+ Take card for players hand, play immediately if it's a Magic Card"
   },
   {
     "name": "Buttons",
@@ -65,7 +65,7 @@
     "roll_condition": ">=6",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "6+ Draw a card, if magic card, play immediately and Draw 2nd Card"
   },
   {
     "name": "Snowball",
@@ -99,7 +99,7 @@
     "roll_condition": ">=7",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "7+ Choose player to sacrifice a Hero Card"
   },
   {
     "name": "Wiggles",
@@ -116,7 +116,7 @@
     "roll_condition": ">=10",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "10+ Steal a Hero Card and roll to use it's effect"
   },
   {
     "name": "Wiggles",
@@ -150,7 +150,7 @@
     "roll_condition": ">=10",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "10+ Each other player must sacrfice a Hero Card"
   },
   {
     "name": "Fluffy",
@@ -167,7 +167,7 @@
     "roll_condition": ">=10",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "10+ Destroy 2 Hero Cards"
   },
   {
     "name": "Whiskers",
@@ -184,7 +184,7 @@
     "roll_condition": ">=11",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "11+ Steal a Hero Card and Destroy a Hero Card"
   },
   {
     "name": "Whiskers",
@@ -218,7 +218,7 @@
     "roll_condition": ">=5",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "5+ Return a cursed item equipped to your Hero to your hand"
   },
   {
     "name": "Wise Shield",
@@ -235,7 +235,7 @@
     "roll_condition": ">=6",
     "duration": "end_of_turn",
     "condition": "",
-    "notes": ""
+    "notes": "6+ +3 to all your rolls until end of your turn"
   },
   {
     "name": "Radiant Horn",
@@ -252,7 +252,7 @@
     "roll_condition": ">=6",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "6+ Search discard for a modifier card and add to your hand"
   },
   {
     "name": "Guiding Light",
@@ -269,7 +269,7 @@
     "roll_condition": ">=7",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "7+ Search discard for a Hero Card and add to your hand"
   },
   {
     "name": "Mighty Blade",
@@ -286,7 +286,7 @@
     "roll_condition": ">=8",
     "duration": "start_of_turn",
     "condition": "",
-    "notes": ""
+    "notes": "8+ Heroes in your party cannot be destoryed until your next turn"
   },
   {
     "name": "Iron Resolve",
@@ -303,7 +303,7 @@
     "roll_condition": ">=8",
     "duration": "end_of_turn",
     "condition": "",
-    "notes": ""
+    "notes": "8+ Cards you play cannoy be challenged for the rest of your turn"
   },
   {
     "name": "Calming Voice",
@@ -320,7 +320,7 @@
     "roll_condition": ">=8",
     "duration": "start_of_turn",
     "condition": "",
-    "notes": ""
+    "notes": "9+ Heroes in your party cannot be stolen until your next turn"
   },
   {
     "name": "Vibrant Glow",
@@ -337,7 +337,7 @@
     "roll_condition": ">=9",
     "duration": "end_of_turn",
     "condition": "",
-    "notes": ""
+    "notes": "9+ +5 to all your rolls until the end of your turn"
   },
   {
     "name": "Tought Teddy",
@@ -354,7 +354,7 @@
     "roll_condition": ">=4",
     "duration": "",
     "condition": "opponent.party.contains(fighter)",
-    "notes": ""
+    "notes": "4+ Each player with a Fighter must discard a card"
   },
   {
     "name": "Fury Knuckles",
@@ -371,7 +371,7 @@
     "roll_condition": ">=5",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "5+ Pull a card from a players hand, if it's a Challenge card pull a second card"
   },
   {
     "name": "Fury Knuckles",
@@ -405,7 +405,7 @@
     "roll_condition": ">=5",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "5+ Choose a player to discard 2 cards"
   },
   {
     "name": "Bear Claw",
@@ -422,7 +422,7 @@
     "roll_condition": ">=7",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "7+ Pull a card from a players hand, if it's a Hero card pull a second card"
   },
   {
     "name": "Bear Claw",
@@ -456,7 +456,7 @@
     "roll_condition": ">=7",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "7+ Each player discard a card, choose 1 card from those and add to hand"
   },
   {
     "name": "Beary Wise",
@@ -490,7 +490,7 @@
     "roll_condition": ">=8",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "8+ Destroy a Hero Card"
   },
   {
     "name": "Pan Chucks",
@@ -507,7 +507,7 @@
     "roll_condition": ">=8",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "8+ Draw 2, if one is a challenge card, reveal it and destroy a Hero"
   },
   {
     "name": "Pan Chucks",
@@ -541,7 +541,7 @@
     "roll_condition": ">=10",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "10+ Discard up to 3 cards, destory a hero for each discarded card"
   },
   {
     "name": "Plundering Puma",
@@ -558,7 +558,7 @@
     "roll_condition": ">=6",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "6+ Pull 2 cards from a players hand, that player may draw a card"
   },
   {
     "name": "Plundering Puma",
@@ -592,7 +592,7 @@
     "roll_condition": ">=6",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "6+ Pull 2 cards from a players hand, then discard 1 of those cards"
   },
   {
     "name": "Slippery Paws",
@@ -626,7 +626,7 @@
     "roll_condition": ">=6",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "6+ Pull a card from a players hand, if it's an item card, play it"
   },
   {
     "name": "Sly Pickings",
@@ -660,7 +660,7 @@
     "roll_condition": ">=7",
     "duration": "",
     "condition": "opponent.party.contains(thief)",
-    "notes": ""
+    "notes": "7+ Pull a card from each player that has a thief"
   },
   {
     "name": "Silent Shadow",
@@ -677,7 +677,7 @@
     "roll_condition": ">=8",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "Look at a players hand, choose a card and add it to your hand"
   },
   {
     "name": "Silent Shadow",
@@ -694,7 +694,7 @@
     "roll_condition": ">=9",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "Look at a players hand, choose a card and add it to your hand"
   },
   {
     "name": "Shurikitty",
@@ -728,7 +728,7 @@
     "roll_condition": ">=9",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "9+ Steal a Hero"
   },
   {
     "name": "Kit Napper",
@@ -745,7 +745,7 @@
     "roll_condition": ">=10",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "9+ Steal a Hero"
   },
   {
     "name": "Meowzio",
@@ -779,7 +779,7 @@
     "roll_condition": ">=2",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "2+ Do nothing"
   },
   {
     "name": "Napping Nibbles",
@@ -796,7 +796,7 @@
     "roll_condition": ">=6",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "2+ Do nothing"
   },
   {
     "name": "Tipsy Tootie",
@@ -830,7 +830,7 @@
     "roll_condition": ">=7",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "6+ Steal a Hero and move Tipsy Tootie to that player's party"
   },
   {
     "name": "Mellow Dee",
@@ -864,7 +864,7 @@
     "roll_condition": ">=7",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "7+ Draw 2 cards"
   },
   {
     "name": "Peanut",
@@ -881,7 +881,7 @@
     "roll_condition": ">=7",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "7+ Draw 2 cards"
   },
   {
     "name": "Lucky Bucky",
@@ -915,7 +915,7 @@
     "roll_condition": ">=8",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "7+ Pull a card from a player, if it's a Hero, play it"
   },
   {
     "name": "Fuzzy Cheeks",
@@ -949,7 +949,7 @@
     "roll_condition": ">=8",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "8+ Each player gives you a card from their hand"
   },
   {
     "name": "Dodgy Dealer",
@@ -966,7 +966,7 @@
     "roll_condition": ">=9",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "9+ Trade hands with another player"
   },
   {
     "name": "Lookie Rookie",
@@ -983,7 +983,7 @@
     "roll_condition": ">=5",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "5+ Search the discard for an item and add it to your hand"
   },
   {
     "name": "Sharp Fox",
@@ -1000,7 +1000,7 @@
     "roll_condition": ">=5",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "5+ Look at a players hand"
   },
   {
     "name": "Hook",
@@ -1017,7 +1017,7 @@
     "roll_condition": ">=6",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "6+ Play an item card and draw a card"
   },
   {
     "name": "Hook",
@@ -1085,7 +1085,7 @@
     "roll_condition": ">=8",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "8+ Draw 2 cards, if at least 1 is an item you may play 1"
   },
   {
     "name": "Quick Draw",
@@ -1119,7 +1119,7 @@
     "roll_condition": ">=8",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "8+ Draw 3 cards and discard a card"
   },
   {
     "name": "Wildshot",
@@ -1153,7 +1153,7 @@
     "roll_condition": ">=9",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "9+ Destory a Hero and draw a card"
   },
   {
     "name": "Serious Guy",
@@ -1187,7 +1187,7 @@
     "roll_condition": ">=10",
     "duration": "",
     "condition": "",
-    "notes": ""
+    "notes": "10+ Draw cards until you have 7"
   },
   {
     "name": "Modifier +4",
