@@ -114,6 +114,7 @@ def train_policy(
     reward_config: RewardConfig = RewardConfig(),
     weights_path: Optional[str] = None,
     log_every: int = 1,
+    debug: bool = False,
 ) -> Tuple[Policy, List[Transition]]:
     rng = random.Random(seed)
     engine = build_engine()
@@ -121,6 +122,9 @@ def train_policy(
     transitions: List[Transition] = []
 
     for episode in range(episodes):
+        debug_enabled = debug and (log_every > 0 and (episode + 1) % log_every == 0)
+        if debug_enabled:
+            print(f"[train][debug] episode {episode + 1}/{episodes} seed={seed} starting.")
         draw_deck, monster_deck, leader_deck = build_decks(engine.card_meta)
         rng.shuffle(draw_deck)
         rng.shuffle(monster_deck)
@@ -159,6 +163,11 @@ def train_policy(
             while active.action_points > 0 and safety > 0:
                 candidates = build_action_candidates(state, engine, pid)
                 if not candidates:
+                    if debug_enabled:
+                        print(
+                            "[train][debug] no action candidates; "
+                            f"episode={episode + 1} turn={state.turn} pid={pid} action_points={active.action_points}."
+                        )
                     break
 
                 if rng.random() < epsilon:
@@ -182,6 +191,12 @@ def train_policy(
                     activated_heroes_this_turn=set(active.activated_heroes_this_turn),
                 )
 
+                if debug_enabled:
+                    print(
+                        "[train][debug] action selected; "
+                        f"episode={episode + 1} turn={state.turn} pid={pid} action={action.kind} "
+                        f"action_points={active.action_points} candidates={len(candidates)} safety={safety}."
+                    )
                 features = _action_features(policy, action, state, engine, pid)
                 current_q = policy.score_action(action, state, engine, pid)
                 action_taken = apply_action_candidate(action, state, engine, pid, rng, policy, [])
@@ -228,8 +243,18 @@ def train_policy(
                 )
 
                 if terminal:
+                    if debug_enabled:
+                        print(
+                            "[train][debug] terminal reached; "
+                            f"episode={episode + 1} turn={state.turn} pid={pid} winner={winner_pid}."
+                        )
                     break
                 safety -= 1
+                if debug_enabled and safety == 0:
+                    print(
+                        "[train][debug] safety exhausted; "
+                        f"episode={episode + 1} turn={state.turn} pid={pid} action_points={active.action_points}."
+                    )
             if winner_pid is not None:
                 break
 
