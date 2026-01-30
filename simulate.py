@@ -27,13 +27,13 @@ def _parse_args() -> argparse.Namespace:
 
     run_parser = subparsers.add_parser("run", help="Run a single simulated game")
     run_parser.add_argument("--seed", type=int, default=7)
-    run_parser.add_argument("--turns", type=int, default=20)
+    run_parser.add_argument("--turns", type=int, default=100)
     run_parser.add_argument("--players", type=int, default=4)
     run_parser.add_argument("--weights", type=str, default=None)
 
     train_parser = subparsers.add_parser("train", help="Run RL training")
     train_parser.add_argument("--episodes", type=int, default=25)
-    train_parser.add_argument("--turns", type=int, default=20)
+    train_parser.add_argument("--turns", type=int, default=100)
     train_parser.add_argument("--players", type=int, default=4)
     train_parser.add_argument("--seed", type=int, default=1)
     train_parser.add_argument("--epsilon", type=float, default=0.15)
@@ -43,7 +43,7 @@ def _parse_args() -> argparse.Namespace:
 
     eval_parser = subparsers.add_parser("evaluate", help="Compare baseline vs tuned policy")
     eval_parser.add_argument("--seeds", type=int, nargs="+", default=[1, 2, 3, 4, 5])
-    eval_parser.add_argument("--turns", type=int, default=12)
+    eval_parser.add_argument("--turns", type=int, default=100)
     eval_parser.add_argument("--players", type=int, default=4)
     eval_parser.add_argument("--weights", type=str, default="policy_weights.json")
 
