@@ -1137,6 +1137,8 @@ def resolve_effect(
     log: List[str],
 ):
     ctx.setdefault("player", pid)
+    if step.step == 2 and not ctx.get("roll.success", False):
+        return
     if "opponent" not in ctx:
         target_pid = ctx.get("target_pid")
         if target_pid is None:
