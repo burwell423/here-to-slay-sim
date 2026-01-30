@@ -113,6 +113,7 @@ def train_policy(
     gamma: float = 0.9,
     reward_config: RewardConfig = RewardConfig(),
     weights_path: Optional[str] = None,
+    log_every: int = 1,
 ) -> Tuple[Policy, List[Transition]]:
     rng = random.Random(seed)
     engine = build_engine()
@@ -231,6 +232,10 @@ def train_policy(
                 safety -= 1
             if winner_pid is not None:
                 break
+
+        if log_every > 0 and (episode + 1) % log_every == 0:
+            outcome = "tie" if winner_pid is None else f"winner pid {winner_pid}"
+            print(f"[train] episode {episode + 1}/{episodes} complete ({outcome}).")
 
     if weights_path:
         policy.save_feature_weights(weights_path)
