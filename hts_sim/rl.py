@@ -135,6 +135,7 @@ def train_policy(
     rng = random.Random(seed)
     engine = build_engine()
     policy = Policy(weights_path=weights_path)
+    policy.expand_feature_weights_for_engine(engine)
     transitions: List[Transition] = []
 
     for episode in range(episodes):
@@ -298,6 +299,8 @@ def evaluate_policies(
     engine = build_engine()
     baseline_policy = baseline_policy or Policy(feature_weights=Policy.default_feature_weights())
     tuned_policy = tuned_policy or Policy(weights_path=None)
+    baseline_policy.expand_feature_weights_for_engine(engine)
+    tuned_policy.expand_feature_weights_for_engine(engine)
 
     results = {"baseline_wins": 0, "tuned_wins": 0, "ties": 0}
     for seed in seeds:

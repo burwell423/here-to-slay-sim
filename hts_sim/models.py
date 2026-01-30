@@ -158,17 +158,29 @@ class Policy:
             sanitized[key] = weight
         return sanitized
 
+    def expand_feature_weights_for_engine(self, engine: "Engine") -> None:
+        for card_id, meta in engine.card_meta.items():
+            self.feature_weights.setdefault(f"card:{card_id}", 0.0)
+            ctype = str(meta.get("type", "")).strip().lower()
+            if ctype == "monster":
+                self.feature_weights.setdefault(f"monster:{card_id}", 0.0)
+
     def score_card_value(self, card_id: int, engine: "Engine") -> int:
         meta = engine.card_meta.get(card_id, {})
         tuned = meta.get("tuning_value")
+        ctype = str(meta.get("type", "unknown")).lower()
+        card_adjust = self.feature_weights.get(f"card:{card_id}", 0.0)
+        monster_adjust = 0.0
+        if ctype == "monster":
+            monster_adjust = self.feature_weights.get(f"monster:{card_id}", 0.0)
         if tuned is not None:
             try:
                 tuned_value = float(tuned)
             except (TypeError, ValueError):
                 tuned_value = None
             if tuned_value is not None and math.isfinite(tuned_value):
-                return int(round(tuned_value))
-        ctype = str(meta.get("type", "unknown")).lower()
+                adjusted = tuned_value + card_adjust + monster_adjust
+                return int(round(adjusted))
         cost = int(meta.get("action_cost", 1) or 1)
         base = {
             "hero": 60,
@@ -179,7 +191,8 @@ class Policy:
             "monster": 5,
             "party_leader": 80,
         }.get(ctype, 20)
-        return base + cost
+        adjusted = base + cost + card_adjust + monster_adjust
+        return int(round(adjusted))
 
     def choose_discard_card(self, hand: List[int], engine: "Engine") -> Optional[int]:
         if not hand:
