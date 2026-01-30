@@ -251,6 +251,12 @@ def evaluate_policies(
     results = {"baseline_wins": 0, "tuned_wins": 0, "ties": 0}
     for seed in seeds:
         rng = random.Random(seed)
+        baseline_on_even = seed % 2 == 0
+        baseline_pids = {
+            pid
+            for pid in range(n_players)
+            if (pid % 2 == 0 and baseline_on_even) or (pid % 2 == 1 and not baseline_on_even)
+        }
         draw_deck, monster_deck, leader_deck = build_decks(engine.card_meta)
         rng.shuffle(draw_deck)
         rng.shuffle(monster_deck)
@@ -275,7 +281,7 @@ def evaluate_policies(
             p.actions_per_turn = 3
             p.action_points = p.actions_per_turn
 
-            policy = baseline_policy if pid % 2 == 0 else tuned_policy
+            policy = baseline_policy if pid in baseline_pids else tuned_policy
             while p.action_points > 0:
                 candidates = build_action_candidates(state, engine, pid)
                 if not candidates:
@@ -291,7 +297,7 @@ def evaluate_policies(
 
         if winner is None:
             results["ties"] += 1
-        elif winner % 2 == 0:
+        elif winner in baseline_pids:
             results["baseline_wins"] += 1
         else:
             results["tuned_wins"] += 1
