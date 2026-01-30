@@ -176,10 +176,21 @@ def action_activate_hero(
         if hero_id in p.activated_heroes_this_turn:
             continue
         steps = engine.effects_by_card.get(hero_id, [])
+        activation_notes = []
+        seen_notes = set()
+        for step in steps:
+            if "on_activation" not in step.triggers() or not step.notes:
+                continue
+            note = step.notes.strip()
+            if not note or note in seen_notes:
+                continue
+            seen_notes.add(note)
+            activation_notes.append(note)
+        note_suffix = f" - {'; '.join(activation_notes)}" if activation_notes else ""
         if any("on_activation" in s.triggers() for s in steps):
             log.append(
                 f"[P{pid}] ACTION activate hero (cost 1) -> {hero_id} "
-                f"({engine.card_meta.get(hero_id,{}).get('name','?')})"
+                f"({engine.card_meta.get(hero_id,{}).get('name','?')}){note_suffix}"
             )
             p.action_points -= 1
 
