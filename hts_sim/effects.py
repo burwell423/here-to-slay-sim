@@ -826,6 +826,8 @@ def _handle_modify_roll(
     expires_turn: Optional[int] = None
     if step.duration and step.duration.strip().lower() == "end_of_turn":
         expires_turn = state.turn
+    if "passive" in step.triggers():
+        expires_turn = state.turn
 
     for delta in deltas:
         state.players[pid].roll_modifiers.append((step.card_id, delta, expires_turn))
