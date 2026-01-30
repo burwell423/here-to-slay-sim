@@ -400,6 +400,9 @@ class Policy:
                 "monster_capture_urgency": remaining / 3.0,
             }
         )
+        if monster_id > 0:
+            features[f"card:{monster_id}"] = 1.0
+            features[f"monster:{monster_id}"] = 1.0
         return features
 
     def extract_activate_features(
@@ -424,6 +427,8 @@ class Policy:
                 "remaining_activations": float(remaining),
             }
         )
+        if hero_id > 0:
+            features[f"card:{hero_id}"] = 1.0
         return features
 
     def extract_play_features(
@@ -455,6 +460,8 @@ class Policy:
                 "adds_party_class": adds_class,
             }
         )
+        if card_id > 0:
+            features[f"card:{card_id}"] = 1.0
         return features
 
     def extract_draw_features(
