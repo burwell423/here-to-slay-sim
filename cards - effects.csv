@@ -10,7 +10,7 @@ Wiggles,5,2,auto,,use_hero,player.party,,hero==stolen_now,,FALSE,,,,
 Spooky,6,1,on_play;on_activation,,sacrifice_hero,all_opponents.party,discard_pile,,1,TRUE,>=10,,,10+ Each other player must sacrfice a Hero Card
 Fluffy,7,1,on_play;on_activation,,destroy_hero,opponent.party,discard_pile,,2,TRUE,>=10,,,10+ Destroy 2 Hero Cards
 Whiskers,8,1,on_play;on_activation,,steal_hero,opponent.party,player.board,,1,TRUE,>=11,,,11+ Steal a Hero Card and Destroy a Hero Card
-Whiskers,8,2,auto,,destroy_hero,opponent.party,discard_pile,,1,FALSE,,,,
+Whiskers,8,2,auto,,destroy_hero,opponent.party,discard_pile,,1,FALSE,,roll.success,,
 Holy Curselifter,9,1,on_play;on_activation,,return_to_hand,player.board,player.hand,item.type==cursed,1,TRUE,>=5,,,5+ Return a cursed item equipped to your Hero to your hand
 Wise Shield,10,1,on_play;on_activation,,modify_roll,,,,3,TRUE,>=6,end_of_turn,,6+ +3 to all your rolls until end of your turn
 Radiant Horn,11,1,on_play;on_activation,,search_and_draw,discard_pile,player.hand,type==modifier,1,TRUE,>=6,,,6+ Search discard for a modifier card and add to your hand
