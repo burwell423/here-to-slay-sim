@@ -1,74 +1,74 @@
 name,card_id,step,trigger,cost,effect_kind,source_zone,dest_zone,filter,amount,requires_roll,roll_condition,duration,condition,notes
-Bun Bun,1,1,on_play;on_activation,,search_and_draw,discard_pile,player.hand,type==magic,1,TRUE,>=5,,,
-Buttons,2,1,on_play;on_activation,,steal_card,opponent.hand,player.hand,,1,TRUE,>=6,,,
+Bun Bun,1,1,on_play;on_activation,,search_and_draw,discard_pile,player.hand,type==magic,1,TRUE,>=5,,,5+ Search discard for Magic Card and add it to your hand
+Buttons,2,1,on_play;on_activation,,steal_card,opponent.hand,player.hand,,1,TRUE,>=6,,,"6+ Take card for players hand, play immediately if it's a Magic Card"
 Buttons,2,2,auto,,play_immediately,player.hand,player.action_area,,1,FALSE,,,stolen_card.type==magic,
-Snowball,3,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,1,TRUE,>=6,,,
+Snowball,3,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,1,TRUE,>=6,,,"6+ Draw a card, if magic card, play immediately and Draw 2nd Card"
 Snowball,3,2,auto,,play_immediately,player.hand,player.action_area,,1,FALSE,,,draw_card.type==magic,
-Hopper,4,1,on_play;on_activation,,sacrifice_hero,opponent.party,discard_pile,,1,TRUE,>=7,,,
-Wiggles,5,1,on_play;on_activation,,steal_hero,opponent.party,player.party,,1,TRUE,>=10,,,
+Hopper,4,1,on_play;on_activation,,sacrifice_hero,opponent.party,discard_pile,,1,TRUE,>=7,,,7+ Choose player to sacrifice a Hero Card
+Wiggles,5,1,on_play;on_activation,,steal_hero,opponent.party,player.party,,1,TRUE,>=10,,,10+ Steal a Hero Card and roll to use it's effect
 Wiggles,5,2,auto,,use_hero,player.party,,hero==stolen_now,,FALSE,,,,
-Spooky,6,1,on_play;on_activation,,sacrifice_hero,all_opponents.party,discard_pile,,1,TRUE,>=10,,,
-Fluffy,7,1,on_play;on_activation,,destroy_hero,opponent.party,discard_pile,,2,TRUE,>=10,,,
-Whiskers,8,1,on_play;on_activation,,steal_hero,opponent.party,player.board,,1,TRUE,>=11,,,
+Spooky,6,1,on_play;on_activation,,sacrifice_hero,all_opponents.party,discard_pile,,1,TRUE,>=10,,,10+ Each other player must sacrfice a Hero Card
+Fluffy,7,1,on_play;on_activation,,destroy_hero,opponent.party,discard_pile,,2,TRUE,>=10,,,10+ Destroy 2 Hero Cards
+Whiskers,8,1,on_play;on_activation,,steal_hero,opponent.party,player.board,,1,TRUE,>=11,,,11+ Steal a Hero Card and Destroy a Hero Card
 Whiskers,8,2,auto,,destroy_hero,opponent.party,discard_pile,,1,FALSE,,,,
-Holy Curselifter,9,1,on_play;on_activation,,return_to_hand,player.board,player.hand,item.type==cursed,1,TRUE,>=5,,,
-Wise Shield,10,1,on_play;on_activation,,modify_roll,,,,3,TRUE,>=6,end_of_turn,,
-Radiant Horn,11,1,on_play;on_activation,,search_and_draw,discard_pile,player.hand,type==modifier,1,TRUE,>=6,,,
-Guiding Light,12,1,on_play;on_activation,,search_and_draw,discard_pile,player.hand,type==hero,1,TRUE,>=7,,,
-Mighty Blade,13,1,on_play;on_activation,,protection_from_destroy,player.party,,type==hero,,TRUE,>=8,start_of_turn,,
-Iron Resolve,14,1,on_play;on_activation,,protection_from_challenge,,,,,TRUE,>=8,end_of_turn,,
-Calming Voice,15,1,on_play;on_activation,,protection_from_steal,player.party,,type==hero,,TRUE,>=8,start_of_turn,,
-Vibrant Glow,16,1,on_play;on_activation,,modify_roll,,,,5,TRUE,>=9,end_of_turn,,
-Tought Teddy,17,1,on_play;on_activation,,discard_card,all_opponents.hand,discard_pile,,1,TRUE,>=4,,opponent.party.contains(fighter),
-Fury Knuckles,18,1,on_play;on_activation,,steal_card,opponents.hand,player.hand,,1,TRUE,>=5,,,
+Holy Curselifter,9,1,on_play;on_activation,,return_to_hand,player.board,player.hand,item.type==cursed,1,TRUE,>=5,,,5+ Return a cursed item equipped to your Hero to your hand
+Wise Shield,10,1,on_play;on_activation,,modify_roll,,,,3,TRUE,>=6,end_of_turn,,6+ +3 to all your rolls until end of your turn
+Radiant Horn,11,1,on_play;on_activation,,search_and_draw,discard_pile,player.hand,type==modifier,1,TRUE,>=6,,,6+ Search discard for a modifier card and add to your hand
+Guiding Light,12,1,on_play;on_activation,,search_and_draw,discard_pile,player.hand,type==hero,1,TRUE,>=7,,,7+ Search discard for a Hero Card and add to your hand
+Mighty Blade,13,1,on_play;on_activation,,protection_from_destroy,player.party,,type==hero,,TRUE,>=8,start_of_turn,,8+ Heroes in your party cannot be destoryed until your next turn
+Iron Resolve,14,1,on_play;on_activation,,protection_from_challenge,,,,,TRUE,>=8,end_of_turn,,8+ Cards you play cannoy be challenged for the rest of your turn
+Calming Voice,15,1,on_play;on_activation,,protection_from_steal,player.party,,type==hero,,TRUE,>=8,start_of_turn,,9+ Heroes in your party cannot be stolen until your next turn
+Vibrant Glow,16,1,on_play;on_activation,,modify_roll,,,,5,TRUE,>=9,end_of_turn,,9+ +5 to all your rolls until the end of your turn
+Tought Teddy,17,1,on_play;on_activation,,discard_card,all_opponents.hand,discard_pile,,1,TRUE,>=4,,opponent.party.contains(fighter),4+ Each player with a Fighter must discard a card
+Fury Knuckles,18,1,on_play;on_activation,,steal_card,opponents.hand,player.hand,,1,TRUE,>=5,,,"5+ Pull a card from a players hand, if it's a Challenge card pull a second card"
 Fury Knuckles,18,2,auto,,steal_card,opponents.hand,player.hand,,1,FALSE,,,stolen_card.type==challenge,
-Heavy Bear,19,1,on_play;on_activation,,discard_card,opponents.hand,discard_pile,,2,TRUE,>=5,,,
-Bear Claw,20,1,on_play;on_activation,,steal_card,opponents.hand,player.hand,,1,TRUE,>=7,,,
+Heavy Bear,19,1,on_play;on_activation,,discard_card,opponents.hand,discard_pile,,2,TRUE,>=5,,,5+ Choose a player to discard 2 cards
+Bear Claw,20,1,on_play;on_activation,,steal_card,opponents.hand,player.hand,,1,TRUE,>=7,,,"7+ Pull a card from a players hand, if it's a Hero card pull a second card"
 Bear Claw,20,2,auto,,steal_card,opponents.hand,player.hand,,1,FALSE,,,stolen_card.type==hero,
-Beary Wise,21,1,on_play;on_activation,,discard_card,all_opponents.hand,discard_pile,,1,TRUE,>=7,,,
+Beary Wise,21,1,on_play;on_activation,,discard_card,all_opponents.hand,discard_pile,,1,TRUE,>=7,,,"7+ Each player discard a card, choose 1 card from those and add to hand"
 Beary Wise,21,2,auto,,search_and_draw,discard_pile,hand,discarded_now==true,1,FALSE,,,,
-Bad Axe,22,1,on_play;on_activation,,destroy_hero,opponent.party,discard_pile,,1,TRUE,>=8,,,
-Pan Chucks,23,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,2,TRUE,>=8,,,
+Bad Axe,22,1,on_play;on_activation,,destroy_hero,opponent.party,discard_pile,,1,TRUE,>=8,,,8+ Destroy a Hero Card
+Pan Chucks,23,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,2,TRUE,>=8,,,"8+ Draw 2, if one is a challenge card, reveal it and destroy a Hero"
 Pan Chucks,23,2,auto,,destroy_hero,opponent.party,discard_pile,,1,FALSE,,,drawn_card.type==challenge,
-Qi Bear,24,1,on_play;on_activation,discard_card:<=3,destroy_hero,any_opponent.party,discard_pile,,cost_count,TRUE,>=10,,,
-Plundering Puma,25,1,on_play;on_activation,,steal_card,opponent.hand,player.hand,,2,TRUE,>=6,,,
+Qi Bear,24,1,on_play;on_activation,discard_card:<=3,destroy_hero,any_opponent.party,discard_pile,,cost_count,TRUE,>=10,,,"10+ Discard up to 3 cards, destory a hero for each discarded card"
+Plundering Puma,25,1,on_play;on_activation,,steal_card,opponent.hand,player.hand,,2,TRUE,>=6,,,"6+ Pull 2 cards from a players hand, that player may draw a card"
 Plundering Puma,25,2,auto,,draw_card,draw_pile,opponent.hand,,1,FALSE,,,,
-Slippery Paws,26,1,on_play;on_activation,,steal_card,opponent.hand,player.hand,,2,TRUE,>=6,,,
+Slippery Paws,26,1,on_play;on_activation,,steal_card,opponent.hand,player.hand,,2,TRUE,>=6,,,"6+ Pull 2 cards from a players hand, then discard 1 of those cards"
 Slippery Paws,26,2,auto,,discard_card,player.hand,discard_pile,drawn_now==true,1,FALSE,,,,
-Sly Pickings,27,1,on_play;on_activation,,steal_card,opponent.hand,player.hand,,2,TRUE,>=6,,,
+Sly Pickings,27,1,on_play;on_activation,,steal_card,opponent.hand,player.hand,,2,TRUE,>=6,,,"6+ Pull a card from a players hand, if it's an item card, play it"
 Sly Pickings,27,2,auto,,play_immediately,player.hand,player.party,,1,FALSE,,,stolen_card.type==item,
-Smooth Mimimeow,28,1,on_play;on_activation,,steal_card,all_opponents.hand,player.hand,,1,TRUE,>=7,,opponent.party.contains(thief),
-Silent Shadow,29,1,on_play;on_activation,,search_and_draw,opponent.hand,player.hand,,1,TRUE,>=8,,,
-Silent Shadow,29,1,on_play;on_activation,,destroy_hero,opponent.party,discard_pile,,1,TRUE,>=9,,,
+Smooth Mimimeow,28,1,on_play;on_activation,,steal_card,all_opponents.hand,player.hand,,1,TRUE,>=7,,opponent.party.contains(thief),7+ Pull a card from each player that has a thief
+Silent Shadow,29,1,on_play;on_activation,,search_and_draw,opponent.hand,player.hand,,1,TRUE,>=8,,,"Look at a players hand, choose a card and add it to your hand"
+Silent Shadow,29,1,on_play;on_activation,,destroy_hero,opponent.party,discard_pile,,1,TRUE,>=9,,,"Look at a players hand, choose a card and add it to your hand"
 Shurikitty,30,2,auto,,search_and_draw,discard_pile,player.hand,discarded_now==true;type==item,1,FALSE,,,,
-Kit Napper,31,1,on_play;on_activation,,steal_hero,opponent.party,player.party,,1,TRUE,>=9,,,
-Kit Napper,31,1,on_play;on_activation,,steal_hero,opponent.party,player.party,,1,TRUE,>=10,,,
+Kit Napper,31,1,on_play;on_activation,,steal_hero,opponent.party,player.party,,1,TRUE,>=9,,,9+ Steal a Hero
+Kit Napper,31,1,on_play;on_activation,,steal_hero,opponent.party,player.party,,1,TRUE,>=10,,,9+ Steal a Hero
 Meowzio,32,2,auto,,steal_card,opponent.hand,player.hand,,1,FALSE,,,,
-Napping Nibbles,33,1,on_play;on_activation,,do_nothing,,,,1,TRUE,>=2,,,
-Napping Nibbles,33,1,on_play;on_activation,,steal_hero,opponent.party,player.party,,1,TRUE,>=6,,,
+Napping Nibbles,33,1,on_play;on_activation,,do_nothing,,,,1,TRUE,>=2,,,2+ Do nothing
+Napping Nibbles,33,1,on_play;on_activation,,steal_hero,opponent.party,player.party,,1,TRUE,>=6,,,2+ Do nothing
 Tipsy Tootie,34,2,auto,,steal_hero,player.party,opponent.party,hero==active,1,FALSE,,,,
-Tipsy Tootie,34,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,1,TRUE,>=7,,,
+Tipsy Tootie,34,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,1,TRUE,>=7,,,6+ Steal a Hero and move Tipsy Tootie to that player's party
 Mellow Dee,35,2,auto,,play_immediately,player.hand,player.party,,1,FALSE,,,draw_card.type==hero,
-Peanut,36,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,2,TRUE,>=7,,,
-Peanut,36,1,on_play;on_activation,,steal_card,opponent.hand,player.hand,,1,TRUE,>=7,,,
+Peanut,36,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,2,TRUE,>=7,,,7+ Draw 2 cards
+Peanut,36,1,on_play;on_activation,,steal_card,opponent.hand,player.hand,,1,TRUE,>=7,,,7+ Draw 2 cards
 Lucky Bucky,37,2,auto,,play_immediately,player.hand,player.party,,1,FALSE,,,stolen_card.type==hero,
-Lucky Bucky,37,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,1,TRUE,>=8,,,
+Lucky Bucky,37,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,1,TRUE,>=8,,,"7+ Pull a card from a player, if it's a Hero, play it"
 Fuzzy Cheeks,38,2,auto,,play_card,player.hand,player.party,type==hero,1,FALSE,,,,
-Greedy Cheeks,39,1,on_play;on_activation,,discard_card,all_opponents.hand,player.hand,,1,TRUE,>=8,,,
-Dodgy Dealer,40,1,on_play;on_activation,,trade_hands,opponents.hand,player.hand,,1,TRUE,>=9,,,
-Lookie Rookie,41,1,on_play;on_activation,,search_and_draw,discard_pile,player.hand,type==item,1,TRUE,>=5,,,
-Sharp Fox,42,1,on_play;on_activation,,look_at_hand,opponent.hand,,,1,TRUE,>=5,,,
-Hook,43,1,on_play;on_activation,,play_card,player.hand,player.party,type==item,1,TRUE,>=6,,,
+Greedy Cheeks,39,1,on_play;on_activation,,discard_card,all_opponents.hand,player.hand,,1,TRUE,>=8,,,8+ Each player gives you a card from their hand
+Dodgy Dealer,40,1,on_play;on_activation,,trade_hands,opponents.hand,player.hand,,1,TRUE,>=9,,,9+ Trade hands with another player
+Lookie Rookie,41,1,on_play;on_activation,,search_and_draw,discard_pile,player.hand,type==item,1,TRUE,>=5,,,5+ Search the discard for an item and add it to your hand
+Sharp Fox,42,1,on_play;on_activation,,look_at_hand,opponent.hand,,,1,TRUE,>=5,,,5+ Look at a players hand
+Hook,43,1,on_play;on_activation,,play_card,player.hand,player.party,type==item,1,TRUE,>=6,,,6+ Play an item card and draw a card
 Hook,43,2,auto,,draw_card,draw_pile,player.hand,,1,FALSE,,,,
 Bullseye,44,3,on_play;on_activation,,draw_card,draw_pile,player.hand,,3,TRUE,>=7,,,
 Bullseye,44,2,auto,,discard_card,player.hand,draw_pile,drawn_now==true,2,FALSE,,,,
-Quick Draw,45,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,2,TRUE,>=8,,,
+Quick Draw,45,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,2,TRUE,>=8,,,"8+ Draw 2 cards, if at least 1 is an item you may play 1"
 Quick Draw,45,2,auto,,play_immediately,player.hand,player.party,type==item,1,FALSE,,,,
-Wildshot,46,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,3,TRUE,>=8,,,
+Wildshot,46,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,3,TRUE,>=8,,,8+ Draw 3 cards and discard a card
 Wildshot,46,2,auto,,discard_card,player.hand,discard_pile,,1,FALSE,,,,
-Serious Guy,47,1,on_play;on_activation,,destroy_hero,opponent.party,discard_pile,,1,TRUE,>=9,,,
+Serious Guy,47,1,on_play;on_activation,,destroy_hero,opponent.party,discard_pile,,1,TRUE,>=9,,,9+ Destory a Hero and draw a card
 Serious Guy,47,2,auto,,draw_card,draw_pile,player.hand,,1,FALSE,,,,
-Wily Red,48,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,hand.size=7,TRUE,>=10,,,
+Wily Red,48,1,on_play;on_activation,,draw_card,draw_pile,player.hand,,hand.size=7,TRUE,>=10,,,10+ Draw cards until you have 7
 Modifier +4,49,1,on_play,,modify_roll,,,,4,FALSE,,,,
 Modifier +3/-1,50,1,on_play,,modify_roll,,,,3 | -1,FALSE,,,,
 Modifier +2/-2,51,1,on_play,,modify_roll,,,,2 | -2,FALSE,,,,
