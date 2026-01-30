@@ -37,6 +37,7 @@ def run_game(seed: int = 1, turns: int = 10, n_players: int = 4, policy: Optiona
     rng = random.Random(seed)
     engine = build_engine()
     policy = policy or Policy()
+    policy.expand_feature_weights_for_engine(engine)
 
     draw_deck, monster_deck, leader_deck = build_decks(engine.card_meta)
     rng.shuffle(draw_deck)
