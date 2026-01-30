@@ -4,7 +4,7 @@ from .challenges import maybe_challenge_play
 from .conditions import goal_satisfied, parse_simple_condition
 from .effects import resolve_effect
 from .game_helpers import can_player_attack_monster
-from .models import Engine, GameState, Policy
+from .models import ActionCandidate, Engine, GameState, Policy
 from .rolls import resolve_roll_event
 
 
@@ -161,6 +161,7 @@ def action_activate_hero(
     rng: "random.Random",
     policy: Policy,
     log: List[str],
+    hero_id: Optional[int] = None,
 ) -> bool:
     p = state.players[pid]
     if p.action_points < 1:
@@ -168,7 +169,10 @@ def action_activate_hero(
     if not p.party:
         return False
 
-    for hero_id in p.party:
+    hero_ids = [hero_id] if hero_id is not None else list(p.party)
+    for hero_id in hero_ids:
+        if hero_id is None:
+            continue
         if hero_id in p.activated_heroes_this_turn:
             continue
         steps = engine.effects_by_card.get(hero_id, [])
@@ -296,20 +300,74 @@ def choose_and_take_action(
     if p.action_points <= 0:
         return False
 
+    candidates = build_action_candidates(state, engine, pid)
+    if not candidates:
+        return False
+
+    scored = [
+        (policy.score_action(candidate, state, engine, pid), candidate) for candidate in candidates
+    ]
+    scored.sort(
+        key=lambda pair: (
+            -pair[0],
+            pair[1].kind,
+            pair[1].monster_id or 0,
+            pair[1].hero_id or 0,
+            pair[1].card_id or 0,
+        )
+    )
+    best_score, best_action = scored[0]
+    log.append(
+        f"[P{pid}] DECISION choose {best_action.kind} "
+        f"(score={best_score:.2f}, cost={best_action.cost})"
+    )
+    return apply_action_candidate(best_action, state, engine, pid, rng, policy, log)
+
+
+def build_action_candidates(state: GameState, engine: Engine, pid: int) -> List[ActionCandidate]:
+    p = state.players[pid]
+    candidates: List[ActionCandidate] = []
     if p.action_points >= 2 and state.monster_row:
-        eligible_monsters = [
-            mid for mid in state.monster_row if can_player_attack_monster(p, engine, mid)
-        ]
-        target_monster = policy.choose_monster_to_attack(eligible_monsters, engine)
-        if target_monster is not None:
-            return action_attack_monster(state, engine, pid, target_monster, rng, policy, log)
+        for monster_id in state.monster_row:
+            if can_player_attack_monster(p, engine, monster_id):
+                candidates.append(ActionCandidate(kind="attack_monster", cost=2, monster_id=monster_id))
 
-    if action_activate_hero(state, engine, pid, rng, policy, log):
+    if p.action_points >= 1:
+        for hero_id in p.party:
+            if hero_id in p.activated_heroes_this_turn:
+                continue
+            steps = engine.effects_by_card.get(hero_id, [])
+            if any("on_activation" in s.triggers() for s in steps):
+                candidates.append(ActionCandidate(kind="activate_hero", cost=1, hero_id=hero_id))
+
+    if p.action_points >= 1:
+        for card_id in p.hand:
+            meta = engine.card_meta.get(card_id, {})
+            if str(meta.get("type", "")).lower() == "modifier":
+                continue
+            candidates.append(ActionCandidate(kind="play_card", cost=1, card_id=card_id))
+
+    if p.action_points >= 1 and state.draw_pile:
+        candidates.append(ActionCandidate(kind="draw", cost=1))
+    return candidates
+
+
+def apply_action_candidate(
+    action: ActionCandidate,
+    state: GameState,
+    engine: Engine,
+    pid: int,
+    rng: "random.Random",
+    policy: Policy,
+    log: List[str],
+) -> bool:
+    if action.kind == "attack_monster" and action.monster_id is not None:
+        return action_attack_monster(state, engine, pid, action.monster_id, rng, policy, log)
+    if action.kind == "activate_hero" and action.hero_id is not None:
+        return action_activate_hero(state, engine, pid, rng, policy, log, hero_id=action.hero_id)
+    if action.kind == "play_card" and action.card_id is not None:
+        play_card_from_hand(state, engine, pid, action.card_id, rng, policy, log)
         return True
-
-    chosen = policy.choose_card_to_play(p.hand, engine)
-    if chosen is not None:
-        play_card_from_hand(state, engine, pid, chosen, rng, policy, log)
-        return True
-
-    return action_draw(state, engine, pid, rng, policy, log)
+    if action.kind == "draw":
+        return action_draw(state, engine, pid, rng, policy, log)
+    return False
