@@ -48,3 +48,12 @@ def test_attack_features_include_urgency_and_value():
     assert features["is_attack"] == 1.0
     assert features["monster_capture_urgency"] == pytest.approx(2 / 3)
     assert policy.score_action(action, state, engine, pid=0) == pytest.approx(1.0 + 3.0 * (2 / 3))
+
+
+def test_score_card_value_uses_tuning_value():
+    engine = _engine()
+    engine.card_meta[1]["tuning_value"] = 123
+
+    policy = Policy()
+
+    assert policy.score_card_value(1, engine) == 123

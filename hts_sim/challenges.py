@@ -28,7 +28,12 @@ def maybe_challenge_play(
 
     challenger_pid, challenge_card_id = challenge_pick
 
-    if not policy.should_challenge(rng):
+    if not policy.should_challenge(
+        rng,
+        engine=engine,
+        played_card_id=played_card_id,
+        challenge_card_id=challenge_card_id,
+    ):
         return False
 
     ctx = {

@@ -156,12 +156,13 @@ def resolve_roll_event(
                         updated[next_delta] = next_choices
             states = updated
 
-        best_score = 0
+        best_score = 0.0
         best_choices: Optional[List[Tuple[str, int, Optional[int], int]]] = None
         for delta_total, choices in states.items():
             if not choices:
                 continue
             score = improvement_score_before_after(total, total + delta_total, pid)
+            score -= policy.modifier_choice_cost(choices, engine)
             if score <= 0:
                 continue
             if best_choices is None or (score, -len(choices)) > (best_score, -len(best_choices)):
