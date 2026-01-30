@@ -200,7 +200,7 @@
     "requires_roll": "FALSE",
     "roll_condition": "",
     "duration": "",
-    "condition": "",
+    "condition": "roll.success",
     "notes": ""
   },
   {
