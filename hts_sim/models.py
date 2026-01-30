@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import random
 from dataclasses import dataclass, field
@@ -120,11 +121,33 @@ class Policy:
         with open(path, encoding="utf-8") as f:
             payload = json.load(f)
         if isinstance(payload, dict):
-            self.feature_weights.update({k: float(v) for k, v in payload.items()})
+            cleaned = {}
+            for key, value in payload.items():
+                try:
+                    weight = float(value)
+                except (TypeError, ValueError):
+                    weight = 0.0
+                if not math.isfinite(weight):
+                    weight = 0.0
+                cleaned[key] = weight
+            self.feature_weights.update(cleaned)
 
     def save_feature_weights(self, path: str) -> None:
+        self.feature_weights = self._sanitize_feature_weights(self.feature_weights)
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(self.feature_weights, f, indent=2, sort_keys=True)
+            json.dump(self.feature_weights, f, indent=2, sort_keys=True, allow_nan=False)
+
+    def _sanitize_feature_weights(self, weights: Dict[str, float]) -> Dict[str, float]:
+        sanitized: Dict[str, float] = {}
+        for key, value in weights.items():
+            try:
+                weight = float(value)
+            except (TypeError, ValueError):
+                weight = 0.0
+            if not math.isfinite(weight):
+                weight = 0.0
+            sanitized[key] = weight
+        return sanitized
 
     def score_card_value(self, card_id: int, engine: "Engine") -> int:
         meta = engine.card_meta.get(card_id, {})
@@ -408,7 +431,15 @@ class Policy:
             features = self.extract_draw_features(action, state, engine, pid)
         else:
             features = self._base_action_features(state, engine, pid, action.cost)
-        return sum(self.feature_weights.get(name, 0.0) * value for name, value in features.items())
+        score = 0.0
+        for name, value in features.items():
+            if not math.isfinite(value):
+                continue
+            weight = self.feature_weights.get(name, 0.0)
+            if not math.isfinite(weight):
+                weight = 0.0
+            score += weight * value
+        return score
 
 
 @dataclass
