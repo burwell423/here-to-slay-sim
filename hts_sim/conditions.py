@@ -119,6 +119,26 @@ def _eval_condition_node(node: ast.AST, ctx: Dict[str, Any]) -> Any:
             return base.get(node.attr)
         return getattr(base, node.attr, None)
 
+    if isinstance(node, ast.Call):
+        if isinstance(node.func, ast.Attribute) and node.func.attr == "contains":
+            base = _eval_condition_node(node.func.value, ctx)
+            if base is None or len(node.args) != 1:
+                return False
+            needle = _eval_condition_node(node.args[0], ctx)
+            if isinstance(needle, str):
+                needle = needle.strip().lower()
+            if isinstance(base, dict):
+                return needle in base
+            if isinstance(base, (list, set, tuple)):
+                normalized = {
+                    item.strip().lower() if isinstance(item, str) else item for item in base
+                }
+                return needle in normalized
+            if isinstance(base, str):
+                return str(needle) in base
+            return False
+        raise ValueError("Unsupported function call")
+
     if isinstance(node, ast.Constant):
         return node.value
 

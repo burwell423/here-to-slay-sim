@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from .conditions import eval_condition, goal_satisfied, parse_simple_condition
 from .game_helpers import (
     attacker_choose_hero_to_destroy,
+    collect_party_classes,
     destroy_hero_card,
     get_zone,
     pick_opponent_pid,
@@ -1130,6 +1131,19 @@ def resolve_effect(
     log: List[str],
 ):
     ctx.setdefault("player", pid)
+    if "opponent" not in ctx:
+        target_pid = ctx.get("target_pid")
+        if target_pid is None:
+            opponent_classes = set()
+            for pstate in state.players:
+                if pstate.pid == pid:
+                    continue
+                opponent_classes.update(collect_party_classes(engine, pstate))
+        elif target_pid == pid:
+            opponent_classes = set()
+        else:
+            opponent_classes = collect_party_classes(engine, state.players[target_pid])
+        ctx["opponent"] = {"party": opponent_classes}
 
     if not eval_condition(step.condition, ctx):
         return
