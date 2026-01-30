@@ -73,11 +73,20 @@ class MonsterRule:
 @dataclass
 class ChallengePolicy:
     challenge_probability: float = 0.35
+    value_weight: float = 0.005
+    min_probability: float = 0.05
+    max_probability: float = 0.95
+
+
+@dataclass
+class RollPolicy:
+    modifier_value_weight: float = 0.02
 
 
 @dataclass
 class Policy:
     challenge: ChallengePolicy = field(default_factory=ChallengePolicy)
+    roll: RollPolicy = field(default_factory=RollPolicy)
     feature_weights: Dict[str, float] = field(default_factory=dict)
     weights_path: Optional[str] = None
 
@@ -151,6 +160,14 @@ class Policy:
 
     def score_card_value(self, card_id: int, engine: "Engine") -> int:
         meta = engine.card_meta.get(card_id, {})
+        tuned = meta.get("tuning_value")
+        if tuned is not None:
+            try:
+                tuned_value = float(tuned)
+            except (TypeError, ValueError):
+                tuned_value = None
+            if tuned_value is not None and math.isfinite(tuned_value):
+                return int(round(tuned_value))
         ctype = str(meta.get("type", "unknown")).lower()
         cost = int(meta.get("action_cost", 1) or 1)
         base = {
@@ -270,8 +287,32 @@ class Policy:
     def choose_reveal_card(self, opp_hand: List[int], engine: "Engine") -> Optional[int]:
         return self.choose_steal_card(opp_hand, engine)
 
-    def should_challenge(self, rng: random.Random) -> bool:
-        return rng.random() < self.challenge.challenge_probability
+    def should_challenge(
+        self,
+        rng: random.Random,
+        engine: Optional["Engine"] = None,
+        played_card_id: Optional[int] = None,
+        challenge_card_id: Optional[int] = None,
+    ) -> bool:
+        probability = self.challenge.challenge_probability
+        if engine is not None and played_card_id is not None and challenge_card_id is not None:
+            target_value = self.score_card_value(played_card_id, engine)
+            challenge_value = self.score_card_value(challenge_card_id, engine)
+            value_delta = target_value - challenge_value
+            probability += value_delta * self.challenge.value_weight
+        probability = min(self.challenge.max_probability, max(self.challenge.min_probability, probability))
+        return rng.random() < probability
+
+    def modifier_choice_cost(
+        self,
+        choices: List[Tuple[str, int, Optional[int], int]],
+        engine: "Engine",
+    ) -> float:
+        cost = 0.0
+        for source_type, source_id, _source_card_id, _chosen_delta in choices:
+            if source_type == "card":
+                cost += self.score_card_value(source_id, engine) * self.roll.modifier_value_weight
+        return cost
 
     def _hero_class(self, engine: "Engine", player: "PlayerState", hero_id: int) -> Optional[str]:
         overrides = player.hero_class_overrides.get(hero_id)

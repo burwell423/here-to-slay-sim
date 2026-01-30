@@ -4,9 +4,12 @@ from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
-from .constants import CARDS_CSV, EFFECTS_JSON, MONSTERS_CSV, MONSTERS_JSON
+import os
+
+from .constants import CARDS_CSV, EFFECTS_JSON, MONSTERS_CSV, MONSTERS_JSON, TUNING_JSON
 from .game_helpers import parse_attack_requirements
 from .models import EffectStep, Engine, MonsterRule
+from .tuning import compute_card_tuning_value
 
 
 def load_effects() -> Dict[int, List[EffectStep]]:
@@ -173,10 +176,45 @@ def build_modifier_options(card_meta: Dict[int, Dict[str, Any]], effects_by_card
     return out
 
 
+def load_tuning_overrides(path: str = TUNING_JSON) -> Dict[int, float]:
+    if not os.path.exists(path):
+        return {}
+    with open(path, encoding="utf-8") as f:
+        payload = json.load(f)
+    overrides: Dict[int, float] = {}
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            try:
+                overrides[int(key)] = float(value)
+            except (TypeError, ValueError):
+                continue
+    return overrides
+
+
+def apply_tuning_values(
+    card_meta: Dict[int, Dict[str, Any]],
+    effects_by_card: Dict[int, List[EffectStep]],
+    monster_attack_rules: Dict[int, MonsterRule],
+    monster_effects: Dict[int, List[EffectStep]],
+    overrides: Dict[int, float],
+) -> None:
+    for cid, meta in card_meta.items():
+        meta["tuning_value"] = compute_card_tuning_value(
+            cid,
+            meta,
+            effects_by_card,
+            monster_attack_rules,
+            monster_effects,
+            overrides=overrides,
+        )
+
+
 def build_engine() -> Engine:
     effects_by_card = load_effects()
     card_meta = load_card_meta()
     monster_attack_rules, monster_effects = load_monsters(MONSTERS_JSON)
+    tuning_overrides = load_tuning_overrides()
+    apply_tuning_values(card_meta, effects_by_card, monster_attack_rules, monster_effects, tuning_overrides)
     modifier_options_by_card_id = build_modifier_options(card_meta, effects_by_card)
     return Engine(
         effects_by_card=effects_by_card,
