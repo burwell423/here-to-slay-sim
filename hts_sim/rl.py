@@ -103,6 +103,22 @@ def _action_features(policy: Policy, action, state: GameState, engine, pid: int)
     return {}
 
 
+def _describe_action_candidate(action, engine) -> str:
+    if action.kind == "attack_monster" and action.monster_id is not None:
+        meta = engine.card_meta.get(action.monster_id, {})
+        return f"attack_monster monster={action.monster_id}:{meta.get('name','?')}"
+    if action.kind == "activate_hero" and action.hero_id is not None:
+        meta = engine.card_meta.get(action.hero_id, {})
+        return f"activate_hero hero={action.hero_id}:{meta.get('name','?')}"
+    if action.kind == "play_card" and action.card_id is not None:
+        meta = engine.card_meta.get(action.card_id, {})
+        ctype = str(meta.get("type", "unknown")).strip().lower()
+        return f"play_card card={action.card_id}:{meta.get('name','?')} type={ctype}"
+    if action.kind == "draw":
+        return "draw"
+    return action.kind
+
+
 def train_policy(
     episodes: int = 25,
     turns: int = 12,
@@ -192,14 +208,19 @@ def train_policy(
                 )
 
                 if debug_enabled:
+                    action_summary = _describe_action_candidate(action, engine)
                     print(
                         "[train][debug] action selected; "
-                        f"episode={episode + 1} turn={state.turn} pid={pid} action={action.kind} "
+                        f"episode={episode + 1} turn={state.turn} pid={pid} action={action_summary} "
                         f"action_points={active.action_points} candidates={len(candidates)} safety={safety}."
                     )
                 features = _action_features(policy, action, state, engine, pid)
                 current_q = policy.score_action(action, state, engine, pid)
-                action_taken = apply_action_candidate(action, state, engine, pid, rng, policy, [])
+                action_log: List[str] = []
+                action_taken = apply_action_candidate(action, state, engine, pid, rng, policy, action_log)
+                if debug_enabled and action_log:
+                    for entry in action_log:
+                        print(f"[train][debug] {entry}")
 
                 reward = _compute_reward_delta(
                     engine,
