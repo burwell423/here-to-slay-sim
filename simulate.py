@@ -27,13 +27,13 @@ def _parse_args() -> argparse.Namespace:
 
     run_parser = subparsers.add_parser("run", help="Run a single simulated game")
     run_parser.add_argument("--seed", type=int, default=7)
-    run_parser.add_argument("--turns", type=int, default=8)
+    run_parser.add_argument("--turns", type=int, default=20)
     run_parser.add_argument("--players", type=int, default=4)
     run_parser.add_argument("--weights", type=str, default=None)
 
     train_parser = subparsers.add_parser("train", help="Run RL training")
     train_parser.add_argument("--episodes", type=int, default=25)
-    train_parser.add_argument("--turns", type=int, default=12)
+    train_parser.add_argument("--turns", type=int, default=20)
     train_parser.add_argument("--players", type=int, default=4)
     train_parser.add_argument("--seed", type=int, default=1)
     train_parser.add_argument("--epsilon", type=float, default=0.15)
