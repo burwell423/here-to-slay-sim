@@ -10,6 +10,12 @@ def roll_2d6(rng: "random.Random") -> int:
     return rng.randint(1, 6) + rng.randint(1, 6)
 
 
+def roll_2d6_detail(rng: "random.Random") -> Tuple[int, int, int]:
+    first = rng.randint(1, 6)
+    second = rng.randint(1, 6)
+    return first, second, first + second
+
+
 def check_roll(roll_value: int, cond: str) -> bool:
     """
     cond examples: '>=5', '<=7', '==9'

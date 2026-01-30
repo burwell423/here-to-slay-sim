@@ -774,32 +774,38 @@ def _handle_modify_action_total(
 
 
 def _extract_modifier_deltas(step: EffectStep) -> List[int]:
-    candidates: List[str] = []
+    def parse_numbers(texts: List[str]) -> List[int]:
+        values: List[int] = []
+        seen = set()
+        for text in texts:
+            if not text:
+                continue
+            for raw in re.findall(r"[-+]?\d+", str(text)):
+                try:
+                    val = int(raw)
+                except ValueError:
+                    continue
+                if val in seen:
+                    continue
+                seen.add(val)
+                values.append(val)
+        return values
+
+    primary: List[str] = []
     if step.amount is not None:
-        candidates.append(str(step.amount))
+        primary.append(str(step.amount))
     if step.amount_expr:
-        candidates.append(step.amount_expr)
+        primary.append(step.amount_expr)
+    deltas = parse_numbers(primary)
+    if deltas:
+        return deltas
+
+    fallback: List[str] = []
     if step.notes:
-        candidates.append(step.notes)
+        fallback.append(step.notes)
     if step.filter_expr:
-        candidates.append(step.filter_expr)
-
-    deltas: List[int] = []
-    seen = set()
-    for text in candidates:
-        if not text:
-            continue
-        for raw in re.findall(r"[-+]?\d+", str(text)):
-            try:
-                val = int(raw)
-            except ValueError:
-                continue
-            if val in seen:
-                continue
-            seen.add(val)
-            deltas.append(val)
-
-    return deltas
+        fallback.append(step.filter_expr)
+    return parse_numbers(fallback)
 
 
 def _handle_modify_roll(
