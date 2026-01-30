@@ -6,8 +6,24 @@ from .utils import format_card_list
 
 
 def get_zone(state: GameState, pid: int, zone: str) -> List[int]:
+    z = zone.strip().lower()
+    if z.startswith("opponent.") or z.startswith("opponents."):
+        opponent_pid = pick_opponent_pid(state, pid)
+        if opponent_pid is None and len(state.players) > 1:
+            opponent_pid = (pid + 1) % len(state.players)
+        if opponent_pid is None:
+            return []
+        p = state.players[opponent_pid]
+        suffix = z.split(".", 1)[1]
+        if suffix == "hand":
+            return p.hand
+        if suffix == "party":
+            return p.party
+        if suffix == "captured_monsters":
+            return p.captured_monsters
+        raise KeyError(f"Unknown zone: {zone}")
+
     p = state.players[pid]
-    z = zone.strip()
     if z == "player.hand":
         return p.hand
     if z == "player.party":
