@@ -1059,6 +1059,14 @@ def _handle_use_hero(
         ctx.setdefault("_warnings", []).append("use_hero: missing target hero in party")
         return
 
+    if hero_id in state.players[target_pid].activated_heroes_this_turn:
+        log.append(
+            f"[P{pid}] use_hero skipped -> {hero_id} "
+            f"({engine.card_meta.get(hero_id,{}).get('name','?')}) already activated this turn"
+        )
+        return
+
+    state.players[target_pid].activated_heroes_this_turn.add(hero_id)
     log.append(
         f"[P{pid}] use_hero -> {hero_id} "
         f"({engine.card_meta.get(hero_id,{}).get('name','?')})"
