@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple
 
-from .conditions import goal_satisfied, roll_2d6
+from .conditions import goal_satisfied, roll_2d6_detail
 from .models import Engine, GameState, Policy
 from .utils import find_modifier_cards
 
@@ -68,9 +68,11 @@ def resolve_roll_event(
 
                 resolve_effect(step, state, engine, roller_pid, ctx, rng, policy, log)
 
-    base = roll_2d6(rng)
+    die_one, die_two, base = roll_2d6_detail(rng)
     total = base
-    log.append(f"[ROLL:{roll_reason}] P{roller_pid} base 2d6 = {base}")
+    log.append(
+        f"[ROLL:{roll_reason}] P{roller_pid} base 2d6 = {base} ({die_one}+{die_two})"
+    )
 
     hero_mod, hero_mod_details = _collect_hero_roll_modifiers(state, engine, hero_id)
     if hero_mod:
@@ -81,6 +83,24 @@ def resolve_roll_event(
         )
         log.append(
             f"[ROLL:{roll_reason}] hero {hero_id} modifiers {hero_mod:+d} from {parts} -> total={total}"
+        )
+
+    roller = state.players[roller_pid]
+    if roller.roll_modifiers:
+        roller.roll_modifiers = [
+            entry
+            for entry in roller.roll_modifiers
+            if entry[2] is None or entry[2] >= state.turn
+        ]
+    if roller.roll_modifiers:
+        total += sum(entry[1] for entry in roller.roll_modifiers)
+        parts = ", ".join(
+            f"{entry[0]}:{engine.card_meta.get(entry[0], {}).get('name', '?')} {entry[1]:+d}"
+            for entry in roller.roll_modifiers
+        )
+        log.append(
+            f"[ROLL:{roll_reason}] P{roller_pid} passive modifiers "
+            f"{sum(entry[1] for entry in roller.roll_modifiers):+d} from {parts} -> total={total}"
         )
 
     used_by_player = set()
@@ -114,16 +134,8 @@ def resolve_roll_event(
             continue
 
         player = state.players[pid]
-        if player.roll_modifiers:
-            player.roll_modifiers = [
-                entry
-                for entry in player.roll_modifiers
-                if entry[2] is None or entry[2] >= state.turn
-            ]
-
         mods = find_modifier_cards(player, engine.card_meta)
-        active_mods = player.roll_modifiers
-        if not mods and not active_mods:
+        if not mods:
             continue
 
         sources: List[Tuple[str, int, Optional[int], List[int]]] = []
@@ -131,9 +143,6 @@ def resolve_roll_event(
             deltas = engine.modifier_options_by_card_id.get(mid, [])
             if deltas:
                 sources.append(("card", mid, None, deltas))
-
-        for source_card_id, delta, _expires in active_mods:
-            sources.append(("effect", delta, source_card_id, [delta]))
 
         states: dict[int, List[Tuple[str, int, Optional[int], int]]] = {0: []}
         for source_type, source_id, source_card_id, deltas in sources:
@@ -183,19 +192,6 @@ def resolve_roll_event(
                                 from .effects import resolve_effect
 
                                 resolve_effect(step, state, engine, owner.pid, ctx, rng, policy, log)
-            else:
-                modifier_entry = (source_card_id, chosen_delta, None)
-                for entry in list(active_mods):
-                    if entry[0] == source_card_id and entry[1] == chosen_delta:
-                        active_mods.remove(entry)
-                        modifier_entry = entry
-                        break
-                source_name = engine.card_meta.get(source_card_id or 0, {}).get("name", "?")
-                log.append(
-                    f"[ROLL:{roll_reason}] P{pid} uses roll modifier {modifier_entry[1]:+d} "
-                    f"from {source_card_id}:{source_name} -> total={total + chosen_delta}"
-                )
-
             total += chosen_delta
 
         used_by_player.add(pid)
