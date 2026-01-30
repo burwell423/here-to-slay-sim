@@ -829,6 +829,16 @@ def _handle_modify_roll(
     if "passive" in step.triggers():
         expires_turn = state.turn
 
+    if "on_roll" in step.triggers():
+        ctx.setdefault("roll_modifiers", [])
+        for delta in deltas:
+            ctx["roll_modifiers"].append((step.card_id, delta))
+            log.append(
+                f"[P{pid}] modify_roll adds {delta:+d} "
+                f"({engine.card_meta.get(step.card_id,{}).get('name','?')})"
+            )
+        return
+
     for delta in deltas:
         state.players[pid].roll_modifiers.append((step.card_id, delta, expires_turn))
         log.append(

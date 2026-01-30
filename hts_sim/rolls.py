@@ -53,7 +53,11 @@ def resolve_roll_event(
       - 'threshold': use goal ('>=',X) or ('<=',X) to decide whether to play mods
       - 'maximize': roller wants high, others want low (challenge-style)
     """
-    ctx = {"roll_player": roller_pid, "roll_reason": roll_reason}
+    ctx = {
+        "roll_player": roller_pid,
+        "roll_reason": roll_reason,
+        "roll_modifiers": [],
+    }
     if roll_reason.startswith("challenge:"):
         for mid in state.players[roller_pid].captured_monsters:
             for step in engine.monster_effects.get(mid, []):
@@ -83,6 +87,18 @@ def resolve_roll_event(
         )
         log.append(
             f"[ROLL:{roll_reason}] hero {hero_id} modifiers {hero_mod:+d} from {parts} -> total={total}"
+        )
+
+    ctx_roll_mods = ctx.get("roll_modifiers") or []
+    if ctx_roll_mods:
+        total += sum(entry[1] for entry in ctx_roll_mods)
+        parts = ", ".join(
+            f"{entry[0]}:{engine.card_meta.get(entry[0], {}).get('name', '?')} {entry[1]:+d}"
+            for entry in ctx_roll_mods
+        )
+        log.append(
+            f"[ROLL:{roll_reason}] P{roller_pid} on_roll modifiers "
+            f"{sum(entry[1] for entry in ctx_roll_mods):+d} from {parts} -> total={total}"
         )
 
     roller = state.players[roller_pid]
