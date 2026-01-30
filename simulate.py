@@ -14,9 +14,78 @@ Key features implemented:
   - captured monster passives via triggers like on_draw / on_challenge
 """
 
+import argparse
+
 from hts_sim.game import run_game
+from hts_sim.models import Policy
+from hts_sim.rl import evaluate_policies, train_policy
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Here to Slay simulator")
+    subparsers = parser.add_subparsers(dest="command")
+
+    run_parser = subparsers.add_parser("run", help="Run a single simulated game")
+    run_parser.add_argument("--seed", type=int, default=7)
+    run_parser.add_argument("--turns", type=int, default=8)
+    run_parser.add_argument("--players", type=int, default=4)
+    run_parser.add_argument("--weights", type=str, default=None)
+
+    train_parser = subparsers.add_parser("train", help="Run RL training")
+    train_parser.add_argument("--episodes", type=int, default=25)
+    train_parser.add_argument("--turns", type=int, default=12)
+    train_parser.add_argument("--players", type=int, default=4)
+    train_parser.add_argument("--seed", type=int, default=1)
+    train_parser.add_argument("--epsilon", type=float, default=0.15)
+    train_parser.add_argument("--alpha", type=float, default=0.05)
+    train_parser.add_argument("--gamma", type=float, default=0.9)
+    train_parser.add_argument("--output", type=str, default="policy_weights.json")
+
+    eval_parser = subparsers.add_parser("evaluate", help="Compare baseline vs tuned policy")
+    eval_parser.add_argument("--seeds", type=int, nargs="+", default=[1, 2, 3, 4, 5])
+    eval_parser.add_argument("--turns", type=int, default=12)
+    eval_parser.add_argument("--players", type=int, default=4)
+    eval_parser.add_argument("--weights", type=str, default="policy_weights.json")
+
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = _parse_args()
+    if args.command == "train":
+        _, transitions = train_policy(
+            episodes=args.episodes,
+            turns=args.turns,
+            n_players=args.players,
+            seed=args.seed,
+            epsilon=args.epsilon,
+            alpha=args.alpha,
+            gamma=args.gamma,
+            weights_path=args.output,
+        )
+        print(f"Saved weights to {args.output}. Collected {len(transitions)} transitions.")
+        return
+
+    if args.command == "evaluate":
+        tuned = Policy(weights_path=args.weights)
+        results = evaluate_policies(
+            seeds=args.seeds,
+            turns=args.turns,
+            n_players=args.players,
+            tuned_policy=tuned,
+        )
+        print("Evaluation results:", results)
+        return
+
+    policy = Policy(weights_path=getattr(args, "weights", None)) if args.command == "run" else None
+    for line in run_game(
+        seed=getattr(args, "seed", 7),
+        turns=getattr(args, "turns", 8),
+        n_players=getattr(args, "players", 4),
+        policy=policy,
+    ):
+        print(line)
 
 
 if __name__ == "__main__":
-    for line in run_game(seed=7, turns=8):
-        print(line)
+    main()
