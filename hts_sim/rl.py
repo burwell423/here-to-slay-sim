@@ -21,6 +21,9 @@ class RewardConfig:
     party_class_completion: float = 6.0
     party_class_progress: float = 1.5
     wasted_action: float = -1.0
+    card_play_value: float = 0.02
+    monster_attack_value: float = 0.02
+    hero_activation_value: float = 0.01
 
 
 @dataclass
@@ -89,6 +92,22 @@ def _compute_reward_delta(
     if not action_taken:
         reward += config.wasted_action
     return reward
+
+
+def _action_value_reward(action, engine, config: RewardConfig) -> float:
+    if action.kind == "play_card" and action.card_id:
+        value = engine.card_meta.get(action.card_id, {}).get("tuning_value")
+        if isinstance(value, (int, float)):
+            return value * config.card_play_value
+    if action.kind == "attack_monster" and action.monster_id:
+        value = engine.card_meta.get(action.monster_id, {}).get("tuning_value")
+        if isinstance(value, (int, float)):
+            return value * config.monster_attack_value
+    if action.kind == "activate_hero" and action.hero_id:
+        value = engine.card_meta.get(action.hero_id, {}).get("tuning_value")
+        if isinstance(value, (int, float)):
+            return value * config.hero_activation_value
+    return 0.0
 
 
 def _action_features(policy: Policy, action, state: GameState, engine, pid: int) -> Dict[str, float]:
@@ -231,6 +250,7 @@ def train_policy(
                     reward_config,
                     action_taken,
                 )
+                reward += _action_value_reward(action, engine, reward_config)
                 winner_pid = _check_win_conditions(state, engine)
                 terminal = winner_pid is not None
                 if terminal:
