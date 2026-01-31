@@ -283,9 +283,13 @@ def train_policy(
             active.activated_heroes_this_turn.clear()
             active.actions_per_turn = 3
             for mid in active.captured_monsters:
+                passive_log: List[str] = []
                 for step in engine.monster_effects.get(mid, []):
                     if "passive" in step.triggers():
-                        resolve_effect(step, state, engine, pid, {}, rng, policy, [])
+                        resolve_effect(step, state, engine, pid, {}, rng, policy, passive_log)
+                if debug_enabled and passive_log:
+                    for entry in passive_log:
+                        print(f"[train][debug] {entry}")
             active.action_points = active.actions_per_turn
 
             safety = 30
