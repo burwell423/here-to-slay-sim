@@ -76,8 +76,11 @@ class Transition:
 def load_transitions(path: str) -> List[Transition]:
     if not path or not os.path.exists(path):
         return []
-    with open(path, encoding="utf-8") as f:
-        payload = json.load(f)
+    try:
+        with open(path, encoding="utf-8") as f:
+            payload = json.load(f)
+    except json.JSONDecodeError:
+        return []
     if not isinstance(payload, list):
         return []
     transitions: List[Transition] = []
