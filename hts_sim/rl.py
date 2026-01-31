@@ -39,14 +39,25 @@ class Transition:
     next_max_q: float
 
     def to_payload(self) -> Dict[str, object]:
+        def sanitize_value(value: object) -> object:
+            if isinstance(value, (int, float)) and not math.isfinite(value):
+                return 0.0
+            return value
+
+        def sanitize_mapping(mapping: Dict[str, float]) -> Dict[str, float]:
+            return {
+                key: sanitize_value(val)  # type: ignore[return-value]
+                for key, val in (mapping or {}).items()
+            }
+
         return {
-            "state": self.state,
-            "action": self.action,
-            "reward": self.reward,
-            "next_state": self.next_state,
+            "state": sanitize_mapping(self.state),
+            "action": sanitize_mapping(self.action),
+            "reward": sanitize_value(self.reward),
+            "next_state": sanitize_mapping(self.next_state),
             "terminal": self.terminal,
-            "features": self.features,
-            "next_max_q": self.next_max_q,
+            "features": sanitize_mapping(self.features),
+            "next_max_q": sanitize_value(self.next_max_q),
         }
 
     @staticmethod
