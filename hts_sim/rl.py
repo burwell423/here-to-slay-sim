@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import math
+import os
 import random
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -33,6 +35,77 @@ class Transition:
     reward: float
     next_state: Dict[str, float]
     terminal: bool
+    features: Dict[str, float]
+    next_max_q: float
+
+    def to_payload(self) -> Dict[str, object]:
+        return {
+            "state": self.state,
+            "action": self.action,
+            "reward": self.reward,
+            "next_state": self.next_state,
+            "terminal": self.terminal,
+            "features": self.features,
+            "next_max_q": self.next_max_q,
+        }
+
+    @staticmethod
+    def from_payload(payload: Dict[str, object]) -> "Transition":
+        return Transition(
+            state=dict(payload.get("state") or {}),
+            action=dict(payload.get("action") or {}),
+            reward=float(payload.get("reward", 0.0) or 0.0),
+            next_state=dict(payload.get("next_state") or {}),
+            terminal=bool(payload.get("terminal", False)),
+            features=dict(payload.get("features") or {}),
+            next_max_q=float(payload.get("next_max_q", 0.0) or 0.0),
+        )
+
+
+def load_transitions(path: str) -> List[Transition]:
+    if not path or not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
+        payload = json.load(f)
+    if not isinstance(payload, list):
+        return []
+    transitions: List[Transition] = []
+    for entry in payload:
+        if isinstance(entry, dict):
+            transitions.append(Transition.from_payload(entry))
+    return transitions
+
+
+def save_transitions(path: str, transitions: List[Transition]) -> None:
+    payload = [transition.to_payload() for transition in transitions]
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, sort_keys=True, allow_nan=False)
+
+
+def replay_transitions(
+    policy: Policy,
+    transitions: List[Transition],
+    alpha: float,
+    gamma: float,
+) -> None:
+    for transition in transitions:
+        features = transition.features or {}
+        if not features:
+            continue
+        action_score = transition.action.get("score")
+        if action_score is None or not math.isfinite(action_score):
+            continue
+        td_target = transition.reward + gamma * transition.next_max_q
+        td_error = td_target - action_score
+        if not math.isfinite(td_error):
+            continue
+        for name, value in features.items():
+            if not math.isfinite(value):
+                continue
+            current_weight = policy.feature_weights.get(name, 0.0)
+            if not math.isfinite(current_weight):
+                current_weight = 0.0
+            policy.feature_weights[name] = current_weight + alpha * td_error * value
 
 
 def _required_hero_classes(engine) -> set:
@@ -150,12 +223,18 @@ def train_policy(
     weights_path: Optional[str] = None,
     log_every: int = 1,
     debug: bool = False,
+    replay_data: Optional[List[Transition]] = None,
+    replay_epochs: int = 1,
 ) -> Tuple[Policy, List[Transition]]:
     rng = random.Random(seed)
     engine = build_engine()
     policy = Policy(weights_path=weights_path)
     policy.expand_feature_weights_for_engine(engine)
     transitions: List[Transition] = []
+
+    if replay_data:
+        for _ in range(max(replay_epochs, 1)):
+            replay_transitions(policy, replay_data, alpha, gamma)
 
     for episode in range(episodes):
         debug_enabled = debug and (log_every > 0 and (episode + 1) % log_every == 0)
@@ -281,6 +360,8 @@ def train_policy(
                         reward=reward,
                         next_state=_summarize_state(engine, active, required_classes),
                         terminal=terminal,
+                        features=features,
+                        next_max_q=next_q,
                     )
                 )
 
