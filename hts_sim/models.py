@@ -170,9 +170,13 @@ class Policy:
         tuned = meta.get("tuning_value")
         ctype = str(meta.get("type", "unknown")).lower()
         card_adjust = self.feature_weights.get(f"card:{card_id}", 0.0)
+        if not math.isfinite(card_adjust):
+            card_adjust = 0.0
         monster_adjust = 0.0
         if ctype == "monster":
             monster_adjust = self.feature_weights.get(f"monster:{card_id}", 0.0)
+            if not math.isfinite(monster_adjust):
+                monster_adjust = 0.0
         if tuned is not None:
             try:
                 tuned_value = float(tuned)
@@ -180,6 +184,8 @@ class Policy:
                 tuned_value = None
             if tuned_value is not None and math.isfinite(tuned_value):
                 adjusted = tuned_value + card_adjust + monster_adjust
+                if not math.isfinite(adjusted):
+                    adjusted = tuned_value
                 return int(round(adjusted))
         cost = int(meta.get("action_cost", 1) or 1)
         base = {
@@ -192,6 +198,8 @@ class Policy:
             "party_leader": 80,
         }.get(ctype, 20)
         adjusted = base + cost + card_adjust + monster_adjust
+        if not math.isfinite(adjusted):
+            adjusted = base + cost
         return int(round(adjusted))
 
     def choose_discard_card(self, hand: List[int], engine: "Engine") -> Optional[int]:
