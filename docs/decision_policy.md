@@ -52,6 +52,9 @@ The RL module uses a simple linear Q-learning update over the same feature vecto
 - Party class completion: `+6`
 - Party class progress: `+1.5` scaled by progress delta
 - Wasted action: `-1`
+- Card play value: `+0.02 * tuning_value`
+- Monster attack value: `+0.02 * tuning_value`
+- Hero activation value: `+0.01 * tuning_value`
 
 ## Usage
 
