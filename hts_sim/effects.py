@@ -1058,6 +1058,16 @@ def _handle_use_hero(
     party = state.players[target_pid].party
     if not party:
         return
+    log.append(
+        "[P{pid}] use_hero start -> target_pid={target_pid} "
+        "source_zone={source_zone} filter={filter_expr} party={party}".format(
+            pid=pid,
+            target_pid=target_pid,
+            source_zone=step.source_zone,
+            filter_expr=step.filter_expr,
+            party=list(party),
+        )
+    )
 
     hero_id: Optional[int] = None
     if step.filter_expr:
@@ -1070,9 +1080,22 @@ def _handle_use_hero(
                 hero_id = stolen
         elif filt == "hero==active":
             hero_id = ctx.get("activated_hero_id")
+    log.append(
+        "[P{pid}] use_hero context -> activated_hero_id={active} stolen_hero={stolen}".format(
+            pid=pid,
+            active=ctx.get("activated_hero_id"),
+            stolen=ctx.get("stolen_hero"),
+        )
+    )
 
     if hero_id is None:
         hero_id = policy.choose_steal_hero(party, engine, state.players[target_pid].hero_items)
+        log.append(
+            "[P{pid}] use_hero choose_steal_hero -> hero_id={hero_id}".format(
+                pid=pid,
+                hero_id=hero_id,
+            )
+        )
 
     if hero_id is None or hero_id not in party:
         ctx.setdefault("_warnings", []).append("use_hero: missing target hero in party")
@@ -1094,10 +1117,23 @@ def _handle_use_hero(
     local_ctx = dict(ctx)
     local_ctx["activated_hero_id"] = hero_id
     local_ctx["used_hero_id"] = hero_id
+    log.append(
+        "[P{pid}] use_hero resolve_effects -> hero_id={hero_id} steps={count}".format(
+            pid=pid,
+            hero_id=hero_id,
+            count=len(engine.effects_by_card.get(hero_id, [])),
+        )
+    )
     for hero_step in engine.effects_by_card.get(hero_id, []):
         trig = hero_step.triggers()
         if "on_activation" in trig or "auto" in trig:
             resolve_effect(hero_step, state, engine, pid, local_ctx, rng, policy, log)
+    log.append(
+        "[P{pid}] use_hero resolved_effects -> hero_id={hero_id}".format(
+            pid=pid,
+            hero_id=hero_id,
+        )
+    )
 
     for w in local_ctx.get("_warnings", []):
         ctx.setdefault("_warnings", []).append(w)
