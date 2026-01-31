@@ -68,6 +68,12 @@ python simulate.py run --seed 7 --turns 8
 python simulate.py train --episodes 50 --output policy_weights.json
 ```
 
+### Continue training from saved transitions
+```
+python simulate.py train --episodes 25 --output policy_weights.json \
+  --transitions-in training_data.json --transitions-out training_data.json --replay-epochs 2
+```
+
 ### Evaluate baseline vs tuned policy
 ```
 python simulate.py evaluate --seeds 1 2 3 4 5 --weights policy_weights.json

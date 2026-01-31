@@ -18,7 +18,7 @@ import argparse
 
 from hts_sim.game import run_game
 from hts_sim.models import Policy
-from hts_sim.rl import evaluate_policies, train_policy
+from hts_sim.rl import evaluate_policies, load_transitions, save_transitions, train_policy
 
 
 def _parse_args() -> argparse.Namespace:
@@ -40,6 +40,9 @@ def _parse_args() -> argparse.Namespace:
     train_parser.add_argument("--alpha", type=float, default=0.05)
     train_parser.add_argument("--gamma", type=float, default=0.9)
     train_parser.add_argument("--output", type=str, default="policy_weights.json")
+    train_parser.add_argument("--transitions-in", type=str, default=None)
+    train_parser.add_argument("--transitions-out", type=str, default=None)
+    train_parser.add_argument("--replay-epochs", type=int, default=1)
 
     eval_parser = subparsers.add_parser("evaluate", help="Compare baseline vs tuned policy")
     eval_parser.add_argument("--seeds", type=int, nargs="+", default=[1, 2, 3, 4, 5])
@@ -53,6 +56,7 @@ def _parse_args() -> argparse.Namespace:
 def main() -> None:
     args = _parse_args()
     if args.command == "train":
+        existing_transitions = load_transitions(args.transitions_in) if args.transitions_in else []
         _, transitions = train_policy(
             episodes=args.episodes,
             turns=args.turns,
@@ -62,8 +66,14 @@ def main() -> None:
             alpha=args.alpha,
             gamma=args.gamma,
             weights_path=args.output,
+            replay_data=existing_transitions,
+            replay_epochs=args.replay_epochs,
         )
         print(f"Saved weights to {args.output}. Collected {len(transitions)} transitions.")
+        if args.transitions_out:
+            combined = existing_transitions + transitions
+            save_transitions(args.transitions_out, combined)
+            print(f"Saved {len(combined)} transitions to {args.transitions_out}.")
         return
 
     if args.command == "evaluate":
